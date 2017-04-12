@@ -19,3 +19,17 @@
 #maritpal-admin-pricing-rules-form #edit-actions a {
 	margin-left: 10px;
 }
+
+/* Reports | MDC Providers and requests Form */
+#maritpal-reports-mdc-figures-by-providers-and-region-form #edit-period .container-inline-date {
+	display: inline-block;
+	margin: 0 10px 10px;
+}
+#maritpal-reports-mdc-figures-by-providers-and-region-form #edit-period .container-inline-date label[for*="edit-period-from-datepicker-popup"],
+#maritpal-reports-mdc-figures-by-providers-and-region-form #edit-period .container-inline-date label[for*="edit-period-to-datepicker-popup"] {
+	display: none;
+}
+#maritpal-reports-mdc-figures-by-providers-and-region-form #edit-actions > * {
+	display: inline-block;
+	margin: 0 10px 10px;
+}

@@ -65,7 +65,9 @@ function maritpal_menu() {
   $items['admin/maritpal/reports/test'] = array(
     'title' => t('Reports Test'),
     'description' => t(''),
-    'page callback' => 'maritpal_reports_mdc_figures_by_providers_and_region',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('maritpal_reports_mdc_figures_by_providers_and_region_form'),
+    // 'page callback' => 'maritpal_reports_mdc_figures_by_providers_and_region_form',
     'access arguments' => array('maritpal settings'),
     'file' => 'maritpal.pages.inc',
     'type' => MENU_LOCAL_TASK,
