@@ -1,0 +1,6 @@
+name = Maritpal Pricing
+description = Tool for creating pricing rules
+core = 7.x
+package = Maritpal
+
+dependencies[] = variable

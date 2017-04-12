@@ -1,0 +1,6 @@
+name = Maritpal Order Actions
+description = Tool for changing Order statuses
+core = 7.x
+package = Maritpal
+
+dependencies[] = variable

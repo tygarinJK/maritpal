@@ -1,0 +1,543 @@
+<?php
+
+/**
+ * Implements hook_permission().
+ */
+function maritpal_permission() {
+  return array(
+    'maritpal settings' => array(
+      'title' => t('Administer Maritpal Settings'),
+      'description' => t('Allows to edit general Maritpal settings.'),
+    ),
+    'maritpal rest settings' => array(
+      'title' => t('Access REST Settings'),
+      'description' => t('Allows to rest access to general Maritpal settings.'),
+    ),
+    'add help request' => array(
+      'title' => t('Add help request'),
+      'description' => t('Allows user to request for help.'),
+    ),
+    'recive mass message' => array(
+      'title' => t('Recive mass messages'),
+      'description' => t('Allow User to recive mass messages.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function maritpal_menu() {
+  $items['admin/maritpal'] = array(
+    'title' => t('Maritpal Settings'),
+    'description' => t(''),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('maritpal_admin_form'),
+    'access arguments' => array('maritpal settings'),
+    'file' => 'maritpal.admin.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/maritpal/general'] = array(
+    'title' => t('General Settings'),
+    'description' => t(''),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('maritpal_admin_form'),
+    'access arguments' => array('maritpal settings'),
+    'file' => 'maritpal.admin.inc',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+
+  $items['admin/maritpal/pricing'] = array(
+    'title' => t('Pricing Settings'),
+    'description' => t(''),
+    'page callback' => 'drupal_get_form',
+    // 'page arguments' => array('variable_module_form', 'maritpal'),
+    'page arguments' => array('maritpal_admin_pricing_settings_form'),
+    // 'access callback' => 'user_access',
+    'access arguments' => array('maritpal settings'),
+    'file' => 'maritpal.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -9,
+  );
+
+  $items['admin/maritpal/reports/test'] = array(
+    'title' => t('Reports Test'),
+    'description' => t(''),
+    'page callback' => 'maritpal_reports_mdc_figures_by_providers_and_region',
+    'access arguments' => array('maritpal settings'),
+    'file' => 'maritpal.pages.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['admin/maritpal/pricing-rules'] = array(
+    'title' => t('Pricing Rules'),
+    'description' => t(''),
+    'page callback' => 'maritpal_pricing_rules_review',
+    'access arguments' => array('maritpal settings'),
+    'file' => 'maritpal.pages.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 50,
+  );
+
+  $items['admin/maritpal/pricing-rules/add'] = array(
+    'title' => t('Add new rule'),
+    'description' => t(''),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('maritpal_admin_pricing_rules_form'),
+    'access arguments' => array('maritpal settings'),
+    'file' => 'maritpal.admin.inc',
+    'type' => MENU_LOCAL_ACTION,
+  );
+
+  $items['admin/maritpal/pricing-rules/%taxonomy_term/edit'] = array(
+    'title' => t('Edit Pricing rule'),
+    'description' => t(''),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('maritpal_admin_pricing_rules_form', 3),
+    'access arguments' => array('maritpal settings'),
+    'file' => 'maritpal.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/maritpal/pricing-rules/%taxonomy_term/delete'] = array(
+    'title' => t('Delete Pricing rule'),
+    'description' => t(''),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('maritpal_admin_pricing_rules_delete_confirm_form', 3),
+    'access arguments' => array('maritpal settings'),
+    'file' => 'maritpal.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['user/%/add/ticket'] = array(
+    'title' => t('Ask Help request'),
+    'description' => t(''),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('maritpal_add_help_request_form'),
+    // 'access callback' => 'user_access',
+    'access arguments' => array('add help request'),
+    'weight' => 99,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['rest/settings'] = array(
+    'title' => 'REST Settings',
+    'page callback' => 'maritpal_rest_output',
+    'access arguments' => array('maritpal settings'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function maritpal_menu_alter(&$items) {
+  $items['messages/new']['access callback'] = 'user_access';
+  $items['messages/new']['access arguments'] = array('administer privatemsg settings');
+  return $items;
+}
+
+/**
+ * Maritpal User add help Request form.
+ */
+function maritpal_add_help_request_form($form, &$form_state) {
+  $form['subject'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Subject'),
+    '#description' => t('Subject of help request.'),
+    '#required' => TRUE
+  );
+
+  $form['body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Message'),
+    '#description' => t('Help request message'),
+    '#required' => TRUE
+  );
+
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Send'),
+  );
+
+  return $form;
+}
+
+function maritpal_add_help_request_form_submit($form, &$form_state) {
+  global $user;
+
+  // -- Load Moderator (rid: 7)
+  $query = 'SELECT ur.uid FROM {users_roles} AS ur WHERE ur.rid = :rid';
+  $result = db_query($query, array(':rid' => '7'));
+  $uids = $result->fetchCol();
+
+  // -- Run if result is not empty
+  if (isset($uids)) {
+    $recipients = array();
+    foreach ($uids as $k => $uid) {
+      $recipients[] = user_load($uid);
+    }
+
+    $subject = 'Ticket: '.$form_state['values']['subject'];
+    $body = $form_state['values']['body'];
+    $options = array(
+      'author' => $user,
+    );
+
+    $result = privatemsg_new_thread($recipients, $subject, $body, $options);
+
+    if (isset($result) && $result['success']) {
+      privatemsg_filter_add_tags($result['message']->thread_id, 5, user_load(4));
+
+      // dpm($thread);
+      drupal_goto('messages/view/'.$result['message']->thread_id);
+      drupal_set_message(t('New ticket <strong>@title</strong> was created. Our manager will respond You soon. ', array('@title' => $subject)), 'status', TRUE);
+    }
+    // else drupal_set_message(t('Ticket wasn`t sent. Error: '.$result['messages']['error']), 'warning', TRUE);
+  }
+  else {
+    drupal_set_message(t('No moderator found.'), 'warning', TRUE);
+  }
+
+  return $form;
+}
+
+/**
+ * Maritpal New Privatemsg form alter.
+ */
+function maritpal_form_privatemsg_new_alter(&$form, &$form_state) {
+  $url = request_uri();
+  $url_q = parse_url($url, PHP_URL_QUERY);
+  parse_str($url_q, $output);
+
+  if (isset($output['user'])) {
+    $form['recipient']['#type'] = 'hidden';
+
+    $user = user_load($output['user']);
+    $form['recipient']['#value'] = $user->name;
+
+    $form['recipient']['#description'] = '';
+  }
+
+  // if (!user_has_role(3) && !user_has_role(7)) {
+  // }
+  $form['body']['#format'] = 'plain_text';
+
+  if (arg(0) == 'messages' && is_numeric(arg(2))) {
+    $pm = privatemsg_message_load(arg(2));
+    if (maritpal_privatemsg_thread_has_tag($pm->thread_id, '9') && !user_has_role(3) && !user_has_role(7)) {
+      $form['#access'] = FALSE;
+    }
+  }
+
+  return $form;
+}
+
+/**
+ * Maritpal Privatemsg filter form alter.
+ */
+function maritpal_form_privatemsg_list_alter(&$form, &$form_state) {
+  $form['tags']['#multiple'] = FALSE;
+
+  return $form;
+}
+
+/**
+ * Admin send mass message.
+ */
+// function maritpal_admin_add_mass_message_form($form, &$form_state) {
+//   $form['recipients'] = array(
+//     '#type' => 'checkboxes',
+//     '#title' => t('Recipients role'),
+//     '#options' => user_roles(TRUE, 'recive mass message'),
+//     '#description' => t('Checck Users role(s) You want to send message to.'),
+//     '#required' => TRUE
+//   );
+
+//   $form['subject'] = array(
+//     '#type' => 'textfield',
+//     '#title' => t('Subject'),
+//     '#description' => t('Mass message subject.'),
+//     '#required' => TRUE
+//   );
+
+//   $form['body'] = array(
+//     '#type' => 'textarea',
+//     '#title' => t('Message'),
+//     '#description' => t('Mass message body.'),
+//     '#required' => TRUE
+//   );
+
+//   $form['actions']['submit'] = array(
+//     '#type' => 'submit',
+//     '#value' => t('Send'),
+//   );
+
+//   return $form;
+// }
+
+// function maritpal_admin_add_mass_message_form_submit($form, &$form_state) {
+//   global $user;
+
+//   $roles = array();
+//   foreach ($form_state['values']['recipients'] as $k => $v) {
+//     if ($v !== 0) $roles[] = $v;
+//   }
+
+//   // -- Load Moderator (rid: 7)
+//   $query = 'SELECT DISTINCT(ur.uid) FROM {users_roles} AS ur WHERE ur.rid IN (:rids)';
+//   $result = db_query($query, array(':rids' => $roles));
+
+//   $uids = $result->fetchCol();
+
+//   // -- Run if result is not empty
+//   if (count($uids) > 0) {
+//     $recipients = array();
+//     foreach ($uids as $k => $uid) {
+//       $recipients[] = user_load($uid);
+//     }
+
+//     $subject = 'Mass (no reply): '.$form_state['values']['subject'];
+//     $body = $form_state['values']['body'];
+//     $options = array(
+//       'author' => $user,
+//     );
+
+//     $result = privatemsg_new_thread('Customer', $subject, $body, $options);
+
+//     if (isset($result) && $result['success']) {
+//       privatemsg_filter_add_tags($result['message']->thread_id, 4, user_load(4));
+
+//       drupal_goto('messages/view/'.$result['message']->thread_id);
+//       drupal_set_message(t('New mass message successfully created.'), 'status', TRUE);
+//     }
+//     else {
+//       foreach ($result['messages']['error'] as $k => $value) {
+//         drupal_set_message(t('Message wasn`t sent. Error: '.$value), 'warning', TRUE);
+//       }
+//     }
+//   }
+//   else {
+//     drupal_set_message(t('No recipients found.'), 'warning', TRUE);
+//   }
+//   return $form;
+// }
+
+/**
+ * Calculate Servisce order price depend on Pricing Rules
+ *
+ * @param number $tread_id
+ *  ID of a thrad to search
+ * @param number $tag_id
+ *  ID aof a tag to search
+ *
+ * @return array
+ */
+function maritpal_calculate_service_order_price($location, $category, $start_date, $end_date) {
+  // $data = _services_arg_value($data, 'data');
+
+	// if (!isset($data['location']) || !isset($data['category']) || !isset($data['date'])) return services_error('Invalid format data', 404);
+
+  // $locs = $data['location'];
+  // $cats = $data['category'];
+
+  // $locs_revert = array_reverse($locs);
+  $location_reverse = array_reverse($location);
+
+  // -- fetch price rules terms
+  $query = new EntityFieldQuery();
+
+  // $query->entityCondition('entity_type', 'taxonomy_term')
+  //   ->propertyCondition('vid', 23)
+  //   ->fieldCondition('field_serv_cat', 'tid', $category, '=')
+  //   ->fieldCondition('field_serv_loaction', 'tid', $location_reverse, 'CONTAINS')
+  //   ->addMetaData('account', user_load(4));
+
+  // $result = $query->execute();
+
+  // if (isset($result['taxonomy_term'])) {
+  //   $tids = array_keys($result['taxonomy_term']);
+
+  //   foreach ($location_reverse as $l => $loc) {
+  //     foreach ($tids as $t => $tid) {
+  //       $term = taxonomy_term_load($tid);
+  //       $tloc = $term->field_serv_loaction['und'][0]['tid'];
+
+  //       if ($loc == $tloc) {
+  //         $term = $temp_term;
+  //         break 2;
+  //       }
+  //     }
+  //   }
+  // }
+
+  // if (!$term) $term = taxonomy_term_load(1988);
+
+  // // return $term;
+
+  // // -- price parameters
+  // $params = array(
+  //   'date_val' => strtotime($data['date']['value']),
+  //   'date_val2' => strtotime($data['date']['value2']),
+  //   'rate' => intval($term->field_serv_rate['und'][0]['value']),
+  //   'price_hp' => array(
+  //     'amount' => intval($term->field_serv_price_ph['und'][0]['amount']),
+  //     'currency_code' => $term->field_serv_price_ph['und'][0]['currency_code'],
+  //   )
+  // );
+  // $params['duration'] = ($params['date_val2'] - $params['date_val']) / 3600;
+
+  // $price = array(
+  //   'amount' => round($params['duration'] * ($params['rate'] * $params['price_hp']['amount']), 0, PHP_ROUND_HALF_UP),
+  //   'currency_code' => $params['price_hp']['currency_code'],
+  //   'taxes' => array(),
+  //   'discount' => 0,
+  // );
+
+  // // -- Admin rate/Transsfer rate/Bank fee
+  // // admin fixed
+  // $adm_type = variable_get_value('pricing:admin_rate:type');
+  // $adm_val = variable_get_value('pricing:admin_rate:value');
+
+  // if ($adm_type == 0) $price['taxes']['admin'] = $adm_val;
+  // else $price['taxes']['admin'] = round(($price['amount'] / 100) * $adm_val, 0);
+
+  // // transfer fixed
+  // $trns_type = variable_get_value('pricing:transfer_rate:type');
+  // $trns_val = variable_get_value('pricing:transfer_rate:value');
+
+  // if ($trns_type == 0) $price['taxes']['transfer'] = $trns_val;
+  // else $price['taxes']['transfer'] = round(($price['amount'] / 100) * $trns_val, 0);
+
+  // // bank fee
+  // $bank_fee = variable_get_value('pricing:bank_fee:value');
+
+  // if ($bank_fee) $price['taxes']['bank_fee'] = round(($price['amount'] / 100) * $bank_fee, 0);
+
+  // // -- create responce
+  // if (!empty($price['amount'])) {
+  //   $responce = (object)array(
+  //     'data' => (object)array(
+  //       'rule' => $term->tid,
+  //       'total' => $price['amount'] + $price['taxes']['admin'] + $price['taxes']['transfer'] + $price['taxes']['bank_fee'] + $price['discount'],
+  //       'currency_code' => $price['currency_code'],
+  //       'components' => (object)array(
+  //         'base_price' => intval($price['amount']),
+  //         'admin_tax' => intval($price['taxes']['admin']),
+  //         'transfer_tax' => intval($price['taxes']['transfer']),
+  //         'bank_fee' => intval($price['taxes']['bank_fee']),
+  //         'discount' => intval($price['discount']),
+  //       ), 
+  //     ),
+  //   );
+  // }
+  // else return services_error('Ups! Something goes wrong.', 406);
+  
+  // return $responce;
+}
+
+/**
+ * Load children taxonomy 
+ *
+ * @param number $tread_id
+ *  ID of a thrad to search
+ * @param number $tag_id
+ *  ID aof a tag to search
+ *
+ * @return boolean
+ */
+
+/**
+ * Check if thread has tag
+ *
+ * @param number $tread_id
+ *  ID of a thrad to search
+ * @param number $tag_id
+ *  ID aof a tag to search
+ *
+ * @return boolean
+ */
+function maritpal_privatemsg_thread_has_tag($tread_id, $tag_id) {
+  $tag = maritpal_privatemsg_load_tag($tag_id);
+
+  $query = db_query(
+      'SELECT * FROM {pm_tags_index} WHERE tag_id = (:tag_id) AND thread_id = (:thread_id)', 
+      array(':tag_id' => $tag->tag_id, ':thread_id' => $tread_id)
+    );
+  $result = $query->fetchAll();
+
+  if (count($result) === 0 && !isset($result[0]['thread_id'])) return FALSE;
+  else return TRUE;
+}
+
+/**
+ * Load Privatemsg thread tags
+ *
+ * @param number $tread_id
+ *  ID of a thrad to search
+ * @param object $account (optional)
+ *  User account to serch for
+ *
+ * @return array $tags
+ */
+function maritpal_privatemsg_load_thread_tags($thread_id, $account = NULL) {
+  if (module_exists('privatemsg_filter')) {
+    if ($account == NULL) {
+      $query = db_query(
+        'SELECT * FROM {pm_tags_index} WHERE thread_id = (:thread_id)', 
+        array(':thread_id' => $thread_id)
+      );
+      $result = $query->fetchAll();
+
+      $tag_ids = array();
+      $tags = array();
+      foreach ($result as $k => $v) {
+        if (!in_array($v->tag_id, $tag_ids)) {
+          $tag_ids[] = $v->tag_id;
+          $tags[] = $v;
+        }
+      }
+
+      $result = $tags;
+    }
+    else {
+      $query = db_query(
+          'SELECT * FROM {pm_tags_index} WHERE uid = (:uid) AND thread_id = (:thread_id)', 
+          array(':uid' => $account->uid, ':thread_id' => $thread_id)
+        );
+      $result = $query->fetchAll();
+    }
+
+    if (isset($result)) return $result;
+    else return array();
+  }
+  else return FALSE;
+}
+
+/**
+ * Load Privatemsg tag
+ *
+ * @param $tag_id
+ *  Tag id
+ *
+ * @return object $tag;
+ */
+function maritpal_privatemsg_load_tag($tag_id) {
+
+  // -- Load tag with tag_id
+  $query = db_query('SELECT * FROM {pm_tags} WHERE tag_id = (:tag_id)', array(':tag_id' => $tag_id));
+  $result = $query->fetchAll();
+
+  $tag = new stdClass;
+
+  if (count($result) > 0) {
+    foreach ($result as $k => $t) {
+      $tag = $t;
+    }
+  }
+
+  return $tag;
+}

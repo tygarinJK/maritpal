@@ -1,0 +1,7 @@
+name = Maritpal Services Old
+description = Old User endpoint method (depricated)
+core = 7.x
+package = Maritpal
+
+;dependencies[] = variable
+dependencies[] = maritpal

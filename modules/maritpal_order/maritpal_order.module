@@ -1,0 +1,1029 @@
+<?php
+
+/**
+ * Implements hook_permission().
+ */
+// function maritpal_order_actions_permission() {
+//   return array(
+//     'create pricing rules' => array(
+//       'title' => t('Create pricing rules'),
+//       'description' => t('Allows to create pricing rules.'),
+//     ),
+//   );
+// }
+
+/**
+ * Implements hook_menu().
+ */
+function maritpal_order_menu() {
+  $items = array();
+
+  $items['request/%'] = array(
+    'title' => 'Simple page (local action)',
+    'page callback' => 'maritpal_order_actions',
+    'page arguments' => array(1),
+    'access callback' => TRUE,
+    // 'type' => MENU_LOCAL_ACTION,
+    // 'file' => 'me.pages.inc',
+  );
+
+  $items['request/%/%'] = array(
+    'title' => 'Request Service Order',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('maritpal_order_request_service_order_form', 1, 2),
+    'access callback' => TRUE,
+    // 'access callback' => array('_request_service_order_access'),
+  );
+
+  $items['request/%node/add-to-cart'] = array(
+    'title' => 'Service Order Add to Cart',
+    'page callback' => 'maritpal_service_order_add_to_cart',
+    'page arguments' => array(1),
+		'access callback' => TRUE,
+  );
+
+  return $items;
+}
+
+/**
+ * Access Request Order form
+ * Userpoints OR Admin
+ *
+ */
+function _request_service_order_access() {
+  global $user;
+
+  $admin = user_has_role(3, $user);
+  $points = userpoints_get_current_points($user->uid);
+
+  if ($points >= 1 || $admin) return TRUE;
+  else {
+    drupal_set_message(t('You don`t have enough points to request service '), 'warning', FALSE);
+    return FALSE;
+  }
+}
+
+/**
+ * Service Order Form
+ *
+ * @param $type
+ *  Service order type (service-order/repeat-order)
+ * @param $uid
+ *  User refferense ID (can be numeric OR "bid" if Bid request)
+ */
+function maritpal_order_request_service_order_form($form, &$form_state, $type, $uid) {
+  global $user;
+
+  $provider = user_load($uid);
+  $user_fullname = $provider->field_prof_username['und'][0]['value'];
+
+  // -- Build Breadcrumbs
+  $breadcrumb = array();
+  $breadcrumb[] = l('Home', '<front>');
+  if (!empty($user_fullname)) $breadcrumb[] = l($user_fullname, '/user/'.$provider->uid);
+  $breadcrumb[] = drupal_get_title(); 
+
+  // -- Set Breadcrumbs
+  drupal_set_breadcrumb($breadcrumb);
+
+
+  $form['order_type'] = array(
+    '#type' => 'hidden',
+    '#value' => $type,
+  );
+
+  $form['resource_ref'] = array(
+    '#type' => 'hidden',
+  );
+
+  $form['subject'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Subject'),
+    '#required' => TRUE,
+    '#weight' => 0,
+  );
+
+  $form['request_serv_loc_hs'] = array(
+    '#type' => 'hierarchical_select',
+    '#title' => t('Service Location'),
+    '#size' => 1,
+    '#config' => array(
+      'module' => 'hs_taxonomy',
+      'params' => array(
+        'vid' => 14,
+        'separator' => '|',
+      ),
+      'save_lineage'    => 1,
+      'enforce_deepest' => 1,
+      'resizable'       => 0,
+      'level_labels' => array(
+        'status' => 1,
+        'labels' => array(
+          0 => t(' - Select location - '),
+        ),
+      ),
+      'dropbox' => array(
+        'status'   => 0,
+        'title'    => t('All selections'),
+        'limit'    => 0,
+        'reset_hs' => 1,
+        'sort'     => 1,
+      ),
+      'editability' => array(
+        'status'           => 0,
+        'item_types'       => array(),
+        'allowed_levels'   => array(
+          0 => 0,
+          1 => 0,
+          2 => 1,
+        ),
+        'allow_new_levels' => 0,
+        'max_levels'       => 3,
+      ),
+      'entity_count'    => array(
+        'enabled' => 0,
+        'require_entity' => 0,
+        'settings' => array(
+          'count_children' => 0,
+          'entity_types' => array(),
+        ),
+      ),
+      // These settings cannot be configured through the UI: they can only be
+      // overridden through code.
+      'animation_delay'    => 400,
+      'exclusive_lineages' => array(),
+      'render_flat_select' => 0,
+    ),
+    '#description' => t(''),
+    '#default_value' => '',
+    '#required' => TRUE,
+    '#weight' => 1,
+  );
+
+  $form['request_serv_cat_hs'] = array(
+    '#type' => 'hierarchical_select',
+    '#title' => t('Service Category'),
+    '#size' => 1,
+    '#config' => array(
+      'module' => 'hs_taxonomy',
+      'params' => array(
+        'vid' => 13,
+        'separator' => '|',
+      ),
+      'save_lineage'    => 0,
+      'enforce_deepest' => 1,
+      'resizable'       => 0,
+      'level_labels' => array(
+        'status' => 1,
+        'labels' => array(
+          0 => t(' - Select category - '),
+        ),
+      ),
+      'dropbox' => array(
+        'status'   => 0,
+        'title'    => t('All selections'),
+        'limit'    => 0,
+        'reset_hs' => 1,
+        'sort'     => 1,
+      ),
+      'editability' => array(
+        'status'           => 0,
+        'item_types'       => array(),
+        'allowed_levels'   => array(
+          0 => 0,
+          1 => 0,
+          2 => 1,
+        ),
+        'allow_new_levels' => 0,
+        'max_levels'       => 3,
+      ),
+      'entity_count'    => array(
+        'enabled' => 0,
+        'require_entity' => 0,
+        'settings' => array(
+          'count_children' => 0,
+          'entity_types' => array(),
+        ),
+      ),
+      // These settings cannot be configured through the UI: they can only be
+      // overridden through code.
+      'animation_delay'    => 400,
+      'exclusive_lineages' => array(),
+      'render_flat_select' => 0,
+    ),
+    '#description' => t(''),
+    '#default_value' => '',
+    '#required' => TRUE,
+    '#weight' => 2,
+  );
+
+  $form['date_time'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Service Date and Time',
+    '#attributes' => array(
+      'class' => array(),
+    ),
+    '#weight' => 3,
+    '#required' => TRUE,
+  );
+
+  $form['date_time']['request_datetime'] = array(
+    '#date_format' => 'Y-m-d H:i',
+    '#date_year_range' => '0:+1',
+    '#type' => 'date_popup',
+    '#datepicker_options' => array('minDate' => 0),
+    '#date_timezone' => $user->timezone,
+    '#required' => TRUE,
+  );
+
+  $form['date_time']['request_datetime2'] = array(
+    '#prefix' => 'to:',
+    '#date_format' => 'Y-m-d H:i',
+    '#date_year_range' => '0:+1',
+    '#type' => 'date_popup',
+    '#datepicker_options' => array('minDate' => 0),
+    '#date_timezone' => $user->timezone,
+    '#required' => TRUE,
+  );
+
+  $form['request_service_descr'] = array(
+    '#type' => 'textarea',
+    '#title' => 'Service Description',
+    '#weight' => 99,
+  );
+
+  $form['#attached']['js'] = array(
+    drupal_get_path('module', 'maritpal_order') . '/maritpal_order.js',
+  );
+
+  $form['actions'] = array(
+    '#weight' => 100,
+  );
+  
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Send'),
+  );
+
+  if (is_numeric($uid)) {
+    $user_ref = user_load($uid);
+
+    $form['resource_ref']['#value'] = $user_ref->uid;
+
+    $form['request_serv_loc_hs']['#config']['module'] = 'hs_smallhierarchy';
+    $form['request_serv_loc_hs']['#config']['params'] = array(
+      'hierarchy' => _maritpal_order_build_sp_location($user_ref),
+      'id' => 'service-location-hs',
+      'separator' => '|',
+    );
+
+    $form['request_serv_cat_hs']['#config']['module'] = 'hs_smallhierarchy';
+    $form['request_serv_cat_hs']['#config']['params'] = array(
+      'hierarchy' => _maritpal_order_build_sp_categories($user_ref),
+      'id' => 'service-category-hs',
+      'separator' => '|',
+    );
+  }
+  else {
+    drupal_set_title(t('Request Bid Service Order'));
+
+    $form['bid_info'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Bid request information'),
+      '#attributes' => array(
+        'class' => array(),
+      ),
+      '#weight' => 4,
+      '#required' => TRUE,
+    );
+
+    $form['bid_info']['deadline_datetime'] = array(
+      '#date_format' => 'Y-m-d H:i',
+      '#date_year_range' => '0:+1',
+      '#type' => 'date_popup',
+      '#datepicker_options' => array('minDate' => 0),
+      '#date_timezone' => $user->timezone,
+      '#description' => t('Bid request expiration date'),
+      '#required' => TRUE,
+    );
+
+    $form['bid_info']['request_budget'] = array(
+      '#type' => 'container',
+    );
+
+    $form['bid_info']['request_budget']['budget_amount'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Bid request budget'),
+      '#element_validate' => array('element_validate_integer'),
+      '#description' => t('Amount You may pay for work'),
+      '#required' => TRUE,
+    );
+
+    $currencies = array();
+    $curs = commerce_currencies(TRUE);
+    $default_currency = commerce_currency_load();
+
+    foreach ($curs as $key => $cur) {
+      $currencies[$key] = $cur['code'];
+    }
+
+    $form['bid_info']['request_budget']['budget_currency'] = array(
+      '#type' => 'select',
+      '#options' => $currencies,
+      '#default_value' => $default_currency['code'],
+      '#required' => TRUE,
+    );
+  }
+
+  if ($type === 'repeat-order') {
+    // $form['repeat_info'] = array(
+    //   '#type' => 'fieldset',
+    //   '#title' => t('Repeat request information'),
+    //   '#attributes' => array(
+    //     'class' => array(),
+    //   ),
+    //   '#description' => t('Either Repeat dates or period and repeat times must be set.'),
+    //   '#weight' => 5,
+    //   '#required' => TRUE,
+    // );
+
+    // $form_state['repeat_info']['storage']['dates'] =
+    //   isset($form_state['repeat_info']['storage']['dates']) ? $form_state['repeat_info']['storage']['dates'] : 0;
+
+    // $form['repeat_info']['dates'] = array(
+    //   '#type' => 'container',
+    //   '#tree' => TRUE,
+    //   '#prefix' => '<div id="repeat-dates">',
+    //   '#suffix' => '</div>',
+    // );
+
+    // if ($form_state['repeat_info']['storage']['dates']) {
+    //   for ($i = 1; $i <= $form_state['repeat_info']['storage']['dates']; $i++) {
+
+    //     $form['repeat_info']['dates']['repeat_date'][$i] = array(
+    //       '#date_format' => 'Y-m-d H:i',
+    //       '#date_year_range' => '0:+1',
+    //       '#type' => 'date_popup',
+    //       '#datepicker_options' => array('minDate' => 0),
+    //       '#date_timezone' => $user->timezone,
+    //       '#description' => t(''),
+    //       '#required' => FALSE,
+    //     );
+
+    //   }
+    // }
+
+    // $form['repeat_info']['add_date'] = array(
+    //   '#type' => 'button',
+    //   '#value' => t('Add A Date'),
+    //   '#href' => '',
+    //   '#ajax' => array(
+    //     'callback' => 'maritpal_order_request_service_order_ajax_add_date',
+    //     'wrapper' => 'repeat-dates',
+    //   ),
+    // );
+
+    // $form['repeat_info']['repeat_period'] = array(
+    //   '#type' => 'select',
+    //   '#title' => t(''),
+    //   '#options' => array(
+    //     '_none' => t('- None -'),
+    //     1 => t('Every Week'),
+    //     2 => t('Every Month'),
+    //   ),
+    //   '#default_value' => $category['selected'],
+    //   '#description' => t(''),
+    // );
+
+    // $form['repeat_info']['repeat_times'] = array(
+    //   '#type' => 'textfield',
+    //   '#title' => t('Repeat times'),
+    //   '#element_validate' => array('element_validate_integer'),
+    //   '#default_value' => '0',
+    //   '#description' => t('How many times You want to repeat procedure?'),
+    // );
+
+    // $form_state['repeat_info']['storage']['dates']++;
+  }
+  
+  return $form;
+}
+
+/**
+ * Ajax callback function for multivalue repeat date field
+ *
+ * @see maritpal_order_request_service_order_form
+ */
+function maritpal_order_request_service_order_ajax_add_date($form, $form_state) {
+  return $form['repeat_info']['dates'];
+}
+
+/**
+ * Form submit
+ *
+ * @see maritpal_order_request_service_order_form
+ */
+function maritpal_order_request_service_order_form_submit($form, &$form_state) {
+  global $user;
+  global $language;
+
+  date_default_timezone_set($user->timezone);
+
+  $url = request_uri();
+  $url_q = parse_url($url, PHP_URL_QUERY);
+  parse_str($url_q, $output);
+
+  // -- Request (Order) type
+  $otype = is_numeric($form['resource_ref']['#value']) ? 1 : 2;
+
+  $node = new stdClass();
+
+  $node->type = "request";
+  $node->uid = $user->uid;
+  $node->language = $user->language;
+  $node->status = 0;
+  $node->promote = 0;
+  $node->title = $form['subject']['#value'];
+  $node->field_order_type[LANGUAGE_NONE][0]['value'] = $otype;
+
+  $datetime  = new DateTime($form_state['values']['request_datetime']);
+  $datetime2 = new DateTime($form_state['values']['request_datetime2']);
+
+  $utc = new DateTimeZone('UTC');
+
+  $datetime ->setTimezone($utc);
+  $datetime2->setTimezone($utc);
+  
+  $node->field_date_and_time[LANGUAGE_NONE][0] = array(
+   'value' => $datetime->format('Y-m-d H:i:s'),
+   'value2' => $datetime2->format('Y-m-d H:i:s'),
+   'timezone' => 'UTC',
+   'timezone_db' => 'UTC',
+  );
+
+  $node->field_reques_tserv_descr[LANGUAGE_NONE][0]['value'] = $form['request_service_descr']['#value'];
+
+  // dpm($form_state);
+
+  // -- Regular requests Service Provider User referense
+  if ($otype === 1) { 
+    // -- MDC
+    $locs = array_map( 'trim', explode('|', $form['request_serv_loc_hs']['hierarchical_select']['selects'][1]['#value']) );
+    $cats = array_map( 'trim', explode('|', $form['request_serv_cat_hs']['hierarchical_select']['selects'][2]['#value']) );
+    
+    $node->field_resource_ref[LANGUAGE_NONE][0]['uid'] = $form['resource_ref']['#value'];
+  }
+  
+  // -- Bid requests fields
+  if ($otype === 2) {
+    for ($i = 0; $i < 3; $i ++) {
+      if ($i < 2) {
+        $locs[$i] = $form['request_serv_loc_hs']['hierarchical_select']['selects'][$i]['#value'];}
+      $cats[$i] = $form['request_serv_cat_hs']['hierarchical_select']['selects'][$i]['#value'];  
+    }
+
+    $dead_date = new DateTime($form_state['values']['deadline_datetime']);
+    $dead_date ->setTimezone($utc);
+
+    $node->field_request_bids_deadline_date[LANGUAGE_NONE][0] = array(
+     'value' => $dead_date->format('Y-m-d H:i:s'),
+     'timezone' => 'UTC',
+     'timezone_db' => 'UTC',
+    );
+
+    $node->field_request_budget['und'][0]['value'] = $form_state['values']['budget_amount'];
+    $node->field_request_bid_budget['und'][0] = array(
+      'amount' => intval($form_state['values']['budget_amount']) * 100,
+      'currency_code' => $form_state['values']['budget_currency'],
+      'data' => array(
+        'components' => array(),
+      ),
+    );
+  }
+
+  // -- Service MDC 
+  foreach ($locs as $k => $v) {
+    $node->field_serv_loc_city[LANGUAGE_NONE][]['tid'] = intval($v);
+  }
+
+  $node->field_request_serv_cat[LANGUAGE_NONE][0]['tid'] = intval(end($cats));
+
+  // dpm($node);
+
+  node_save($node);
+
+  drupal_set_message(t('Request <strong>@name:</strong> was succesfully created', array('@name:' => $node->title)), 'status', FALSE);
+
+  // if (!isset($output['destination'])) drupal_goto('node/'.$node->nid);
+}
+
+/**
+ * Form validate
+ *
+ * @see maritpal_order_request_service_order_form
+ */
+function maritpal_order_request_service_order_form_validate($form, &$form_state) {
+  global $user;
+
+  if ( isset($form_state['values']['resource_ref']) && !empty($form_state['values']['resource_ref']) ) {
+
+    // -- Date Array to compare
+    $date = array(
+      'value' => $form_state['values']['request_datetime'],
+      'value2' => $form_state['values']['request_datetime2'],
+    );
+
+    $d1 = $date['value'];
+    $d2 = $date['value2'];
+
+    $start = strtotime($d1);
+    $end = strtotime($d2);
+
+    if ($start > $end) {
+      form_set_error('request_datetime', t('End date can not be less than the initial'));
+      form_set_error('request_datetime2');
+
+      return;
+    }
+
+    $time_free = _maritpal_order_validate_service_provider_time($form_state['values']['resource_ref'], $date);
+    
+    if (!$time_free) {
+      form_set_error('request_datetime', t('Time You want to request is not accessible.'));
+      form_set_error('request_datetime2');
+
+      return;
+    }
+  }
+}
+
+/**
+ * Build Providers locations array
+ * 
+ * @param $user - User object
+ */
+function _maritpal_order_build_sp_location($user) {
+  $locs = $user->field_serv_loc_city['und'];
+
+  $result = array();
+
+  for ($i = 0; $i < 3; $i++) { 
+    foreach ($locs as $k => $v) {
+      $tid = $v['tid'];
+      $term = taxonomy_term_load($tid);
+      $parent = taxonomy_get_parents($term->tid);
+      $parent_id = reset(array_keys($parent));
+
+      if (count($parent) == 0) $result[$tid] = array('label' => $term->name);
+      else {
+        foreach ($result as $key => $value) {
+          if ($key == $parent_id) {
+            $result[$key]['children'][$tid] = array('label' => $term->name);
+          }
+        }
+      }
+    }
+  }
+
+  return $result;
+}
+
+/**
+ * Build Providers categories array
+ * 
+ * @param $user - User object
+ */
+function _maritpal_order_build_sp_categories($user) {
+  $cats = $user->field_user_serv_categories['und'];
+
+  $res = array();
+
+  foreach ($cats as $key => $value) {
+    $tid = $value['tid'];
+    $term = taxonomy_term_load($tid);
+    $parent = taxonomy_get_parents($tid);
+    
+    $res[$tid] = (object) array();
+
+    $res[$tid]->tid = intval($tid);
+    $res[$tid]->label = $term->name;
+
+    if ($parent == null) $res[$tid]->host = null;
+    else $res[$tid]->host = reset(array_keys($parent));
+  }
+
+  $result = array();
+
+  for ($i = 0; $i < 5; $i++) { 
+    foreach ($res as $k => $v) {
+      if ($v->host == null) $result[$k] = array('label' => $v->label);
+      
+      if ($i > 0) {
+        foreach ($result as $key => $value) {
+          if ($key == $v->host) {
+            $result[$key]['children'][$k] = array('label' => $v->label);
+          }
+          foreach ($result[$key]['children'] as $key1 => $value1) {
+            if ($key1 == $v->host) {
+              $result[$key]['children'][$key1]['children'][$k] = array('label' => $v->label);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return $result;
+}
+
+/**
+ * Validate Service Provider free time
+ * 
+ * @param Int $uid
+ *  Service Provider User ID
+ * @param Array $date
+ *  Date to compare
+ *
+ * @return boolean
+ */
+function _maritpal_order_validate_service_provider_time($uid, $date) {
+  global $user;
+  $curent_user = $user;
+
+  if (empty($uid) || !is_array($date)) return FALSE;
+
+  // -- Load Provider`s ref. Orders
+  $query = new EntityFieldQuery();
+
+  $query->entityCondition('entity_type', 'node')
+  ->entityCondition('bundle', 'request')
+  ->propertyCondition('status', NODE_PUBLISHED)
+  ->fieldCondition('field_resource_ref', 'uid', $uid, '=')
+  ->fieldCondition('field_request_status', 'tid', array('12', '14', '16', '38'), 'IN')
+  ->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT')
+  ->addMetaData('account', user_load(4)); // Run the query as user Admin.
+
+  $result = $query->execute();
+
+  // -- Run if resul is not empty
+  if (isset($result['node'])) {
+    date_default_timezone_set($curent_user->timezone);
+
+    $datetime2 = new DateTime($form_state['values']['request_datetime2']);
+
+
+
+    // -- Compare Dates
+    $d1 = new DateTime($date['value']);
+    $d2 = new DateTime($date['value2']);
+
+    $utc = new DateTimeZone('UTC');
+    
+    $d1 ->setTimezone($utc);
+    $d2 ->setTimezone($utc);
+
+    $start = strtotime( $d1->format('Y-m-d H:i:s') );
+    $end = strtotime( $d2->format('Y-m-d H:i:s') );
+
+    $nids = array_keys($result['node']);
+
+    // -- Compare New order date to Provider calendar order dates
+    foreach ($nids as $nid) {
+      $node = node_load($nid);
+
+      // -- Dates to compare with
+      $comp_start = strtotime($node->field_date_and_time['und'][0]['value']);
+      $comp_end = strtotime($node->field_date_and_time['und'][0]['value2']);
+
+      $result = array(
+        'date_v1' => $date['value'],
+        'date_v2' => $date['value2'],
+        'd1' => $d1->format('Y-m-d H:i:s'),
+        'd2' => $d2->format('Y-m-d H:i:s'),
+        'start' => $start,
+        'end' => $end,
+        'node_d1' => $node->field_date_and_time['und'][0]['value'],
+        'node_d2' => $node->field_date_and_time['und'][0]['value2'],
+        'comp_start' => $comp_start,
+        'comp_end' => $comp_end
+      );
+
+      // dpm($result);
+
+      // -- If time is NOT free
+      if ( ($start >= $comp_start && $start <= $comp_end) || ($end >= $comp_start && $end <= $comp_end) ) return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
+/**
+ * Implement hook_form_alter()
+ * Request node add form alter
+ */
+function maritpal_order_form_request_node_form_alter(&$form, &$form_state) {
+  // global $user;
+
+  // $admin = user_has_role(3, $user);
+
+  // $url = request_uri();
+  // $url_q = parse_url($url, PHP_URL_QUERY);
+  // parse_str($url_q, $output);
+
+  // if (isset($output['type']) && 
+  //     $output['type'] === 'regular' && 
+  //     isset($output['provider']) && 
+  //     is_numeric($output['provider'])) 
+  // {
+
+  //   $provider = user_load($output['provider']);
+
+
+  //   $form['field_order_type']['und']['#default_value'] = 1;
+  //   $form['field_order_type']['und']['#required'] = TRUE;
+  //   // $form['field_order_type']['und']['#access'] = $admin;
+
+  //   $form['field_resource_ref']['und']['#default_value'] = $provider->uid;
+  //   // $form['field_resource_ref']['und']['#access'] = $admin;
+
+  //   drupal_set_message(t('message'), 'status', FALSE);
+  // }
+
+  // $form['actions']['submit'] = array(
+  //   '#type' => 'submit',
+  //   '#value' => 'something else',
+  // );
+
+  // return $form;
+}
+
+/**
+ * Implement hook_form()
+ * Block calendar time Form (Block request)
+ */
+function maritpal_order_block_calendar_time_form($form, &$form_state) {
+  $form['block_time'] = array(
+    '#type' => 'fieldset', 
+    '#title' => t('Block Calendar time'), 
+    '#weight' => 0, 
+    '#collapsible' => TRUE, 
+    '#collapsed' => TRUE,
+  );
+
+  $form['block_time']['datetime'] = array(
+    '#date_format' => 'Y-m-d H:i',
+    '#date_year_range' => '0:+1',
+    '#type' => 'date_popup',
+    '#datepicker_options' => array('minDate' => 0),
+    '#required' => TRUE,
+  );
+
+  $form['block_time']['datetime2'] = array(
+    '#prefix' => 'to:',
+    '#date_format' => 'Y-m-d H:i',
+    '#date_year_range' => '0:+1',
+    '#type' => 'date_popup',
+    '#datepicker_options' => array('minDate' => 0),
+    '#required' => TRUE,
+  );
+
+  $form['block_time']['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Block Calendar time'),
+  );
+
+  return $form;
+}
+
+function maritpal_order_block_calendar_time_form_submit($form, &$form_state) {
+  global $user;
+
+  $node = new stdClass();
+
+  $node->title = 'Time is blocked';
+  $node->type = "request";
+  $node->language = LANGUAGE_NONE;
+  $node->uid = $user->uid;
+  $node->status = 1;
+  $node->promote = 0;
+  $node->field_order_type[LANGUAGE_NONE][0]['value'] = 3;
+  $node->field_blocked_time[LANGUAGE_NONE][0]['value'] = TRUE;
+  $node->field_request_status[LANGUAGE_NONE][0]['tid'] = 38;
+  $node->field_resource_ref[LANGUAGE_NONE][0]['uid'] = $user->uid;
+
+  $date1 = $form['block_time']['datetime']['#value'];
+  $date2 = $form['block_time']['datetime2']['#value'];
+
+  $node->field_date_and_time['und'][0] = array(
+   'value' => $date1['date'].' '.$date1['time'],
+   'value2' => $date2['date'].' '.$date2['time'],
+   'timezone' => $user->timezone,
+   'timezone_db' => 'UTC',
+  );
+
+  node_save($node);
+
+  drupal_set_message(t('Time was succesfully blocked'), 'status', FALSE);
+}
+
+
+function maritpal_order_actions($nid) {
+  
+  $url = request_uri();
+  $url_q = parse_url($url, PHP_URL_QUERY);
+  parse_str($url_q, $output);
+
+  // $terms = taxonomy_get_tree(4);
+
+  $node = node_load($nid);
+  $order_status = $node->field_request_status['und'][0]['tid'];
+
+  if ($output['action'] == 'cancel') maritpal_order_actions_cancel($nid, $order_status, $node);
+  if ($output['action'] == 'deny') maritpal_order_actions_deny($nid, $order_status, $node);
+  if ($output['action'] == 'approve') maritpal_order_actions_approve($nid, $order_status, $node);
+  if ($output['action'] == 'submit') maritpal_order_actions_submit($nid, $order_status, $node);
+  if ($output['action'] == 'reject') maritpal_order_actions_reject($nid, $order_status, $node);
+
+  if ( $output['action'] == 'select-provider' && !empty($output['uid']) ) maritpal_order_actions_select_privider($output, $node);
+
+  drupal_goto($output['destination']);
+}
+
+function maritpal_order_actions_cancel($nid, $order_status, $node) {
+	if ($order_status == 12) maritpal_order_actions_change_status($nid, 13, $node);
+	if ($order_status == 14) maritpal_order_actions_change_status($nid, 15, $node);
+
+	drupal_set_message(t('Order was canceled'), 'status', FALSE);
+}
+
+function maritpal_order_actions_deny($nid, $order_status, $node) {
+  $args = func_get_args();
+  dpm('$args');
+
+  maritpal_order_actions_change_status($nid, 17, $node);
+
+  drupal_set_message(t('Order was denied'), 'status', FALSE);
+}
+
+function maritpal_order_actions_approve($nid, $order_status, $node) {
+	if ($order_status == 10) maritpal_order_actions_change_status($nid, 12, $node);
+	if ($order_status == 11) maritpal_order_actions_change_status($nid, 12, $node);
+	
+	drupal_set_message(t('Order was approved'), 'status', FALSE);
+}
+
+function maritpal_order_actions_submit($nid, $order_status, $node) {
+  global $user;
+
+  $userpoints = userpoints_get_current_points($user->uid);
+
+  if ( $userpoints < 1 ) {
+    drupal_set_message(t('You cannot submit request, you don`t have enought points to request service.'), 'warning', FALSE);
+    return;
+  }
+
+  // $points = array(
+  //   'uid' => $user->uid,
+  //   'points' => -1,
+  //   'moderate' => FALSE,
+  //   'operation' => t('Service Request payment'),
+  // );
+
+  // userpoints_userpointsapi($points);
+
+	$order_type = $node->field_order_type['und'][0]['value'];
+
+  if ($order_type == 1) maritpal_order_actions_change_status($nid, 11, $node);
+	if ($order_type == 2) maritpal_order_actions_change_status($nid, 10, $node);
+
+	// drupal_set_message(t('Order was succesfully submitted, @point point was deducted for the service request.', array('@point' => 'a')), 'status', TRUE);
+}
+
+function maritpal_order_actions_reject($nid, $order_status, $node) {
+	maritpal_order_actions_change_status($nid, 253, $node);
+
+	drupal_set_message(t('Order was rejected'), 'status', FALSE);
+}
+
+/**
+ * Bid Request Select Provider 
+ * 
+ * @param $output
+ *  Query parameters
+ * @param $node
+ *  Request node
+ */
+function maritpal_order_actions_select_privider($output, $node) {
+  $user = user_load($output['uid']);
+
+  $node->field_resource_ref['und'][0]['uid'] = $output['uid'];
+	$node->field_request_status['und'][0]['tid'] = 12;
+  $node->field_service_cost['und'][0]['amount'] = $output['amount'];
+  $node->field_service_cost['und'][0]['currency_code'] = $output['currency'];
+	$node->log = 'Node resourse referens changed' . date('c');
+
+  node_save($node);
+
+  drupal_set_message(t('Service Provider @name was chosen and will be informed by e-mail.', array(
+    '@name' => $user->field_prof_username['und'][0]['value'],
+  )), 'status', FALSE);
+}
+
+/**
+ * Service Request Change status 
+ * 
+ * @param $nid
+ *  Service Request Node ID
+ * @param $status
+ *  Service Request Status to change on
+ * @param $node
+ *  Service Request Node
+ */
+function maritpal_order_actions_change_status($nid, $status, $node){
+  $node->field_request_status['und'][0]['tid'] = $status;
+  $node->status = 1;
+  $node->revision = 1;
+  $node->comment = 2;
+  $node->log = 'Node status updated on ' . date('c'); 
+	node_save($node);
+}
+
+/**
+ * Implement hook_form_FORM_ID_alter()
+ *
+ * Comments (Bid Requets bids) form alter
+ */
+function maritpal_order_form_comment_node_request_form_alter(&$form, &$form_state) {
+  global $user;
+
+  $comments = maritpal_load_node_comments($form['#node']->nid, $user);
+  $points = userpoints_get_current_points($user->uid);
+
+  if ((user_has_role(4, $user) && $points < 1) || count($comments) > 0) {
+    if (count($comments) > 0) {
+      $form['no_points'] = array(
+        '#type' => 'item',
+        '#markup' => t('You`ve allready place Your bid.'),
+      );
+    } else {
+      $form['no_points'] = array(
+        '#type' => 'item',
+        '#markup' => t('You dont have enough points to left bids'),
+      );
+    }
+
+    $form['field_comment_amount']['#access'] = FALSE;
+    $form['comment_body']['#access'] = FALSE;
+    $form['actions']['submit']['#access'] = FALSE;
+  }
+
+  $form['author']['_author'] = array();
+
+  $form['actions']['submit']['#value'] = 'Send';
+
+  return $form;
+}
+
+/**
+ * Service Order add to cart action
+ *
+ * @see maritpal_order_menu()
+ * 
+ * @param object $node
+ *  Service Order node
+ */
+function maritpal_service_order_add_to_cart($node) {
+  global $user;
+
+  rules_invoke_component('rules_order_clear_cart_set_not_in_cart_flag_', $user);
+  rules_invoke_component('rules_order_add_request_order_to_the_cart ', $node);
+
+  drupal_goto('cart');
+}
+
+/**
+ * Return all node comments
+ * 
+ * @param integer $nid
+ *  Node ID
+ * @param object $user
+ *  Comment Author
+ *
+ * @return array
+ *  Commets array
+ */
+function maritpal_load_node_comments($nid, $user = NULL) {
+  if ($user) global $user;
+
+  $query = db_query(
+    'SELECT * FROM {comment} WHERE nid = :nid AND uid = :uid',
+    array(
+      ':nid' => $nid,
+      ':uid' => $user->uid
+    )
+  );
+  $result = $query->fetchAll();
+
+  return $result;
+}

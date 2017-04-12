@@ -1,0 +1,613 @@
+<?php
+
+/**
+ * Implements hook_permission().
+ */
+function maritpal_services_old_permission() {
+  return array(
+    'create requests' => array(
+      'title' => t('Create Order Requests'),
+      'description' => t('Allows User to create Order Requests.'),
+    ),
+    'create user profile' => array(
+      'title' => t('Create Customer/Provider Profiles'),
+      'description' => t('Allows User to create Profiles.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function maritpal_services_old_menu() {
+  $items = array();
+
+  $items['rest/custom_user_endpoint'] = array(
+    'page callback' => 'maritpal_services_old_user_endpoint',
+    'access arguments' => array('create user profile'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['rest/provider'] = array(
+    'page callback' => 'maritpal_services_old_user_endpoint',
+    'access arguments' => array('create user profile'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['rest/customer'] = array(
+    'page callback' => 'maritpal_services_old_user_endpoint',
+    'access arguments' => array('create user profile'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['rest/request'] = array(
+    'page callback' => 'maritpal_services_old_request_endpoint',
+    'access arguments' => array('create requests'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['rest/request/price'] = array(
+    'page callback' => '_request_service_price_load',
+    'access arguments' => array('create requests'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['rest/user/%user/privatemsg'] = array(
+    'title' => t('Users messages view'),
+    'description' => t(''),
+    'page callback' => 'maritpal_services_old_users_privatemsg',
+    'page arguments' => array(2),
+    'access callback' => 'user_access',
+    'access arguments' => array('read privatemsg'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implement hook_services_resources_alter
+ */
+function maritpal_services_old_services_resources_alter(&$resources, &$endpoint) {
+  $resources['privatemsg']['actions']['ticket'] = array(
+    'file' => array(
+      'type' => 'inc',
+      'module' => 'maritpal_services_old',
+      'name' => 'resources/privatemsg',
+    ), 
+    'callback' => '_privatemsg_ticket',
+    'args' => array(
+      array(
+        'name' => 'data', 
+        'optional' => FALSE, 
+        'type' => 'array',
+        'source' => 'data', 
+        'description' => 'Privastemsg data.', 
+      ),
+    ), 
+    'access callback' => 'services_access_menu',
+  );
+
+  $resources['privatemsg']['operations']['create'] = array(
+    'callback' => '__privatemsg_services_send',
+    'file' => array(
+      'type' => 'inc',
+      'module' => 'maritpal_services_old',
+      'name' => 'resources/privatemsg',
+    ), 
+    'access arguments' => array(
+      'send private messages from remote',
+    ),
+    'args' => array(
+      array(
+        'name'        => 'message',
+        'type'        => 'array',
+        'description' => t('A privatemsg array'),
+        'source'      => 'data',
+      ),
+    ),
+    'help' => t('Returns TRUE if the message sending was a success.'),
+  );
+
+  $resources['commerce_currency'] = array(
+    'operations' => array(
+      'retrieve' => array(
+        'help' => 'Retrieve a currency',
+        'callback' => '_commerce_currency_retrieve',
+        'file' => array('type' => 'inc', 'module' => 'maritpal_services_old', 'name' => 'resources/commerce'),
+        'access callback' => '_commerce_resource_access',
+        'access arguments' => array('view'),
+        'access arguments append' => TRUE,
+        'args' => array(
+          array(
+            'name' => 'cc',
+            'type' => 'string',
+            'description' => 'The Currency Code to retrieve.',
+            'source' => array('path' => 0),
+            'optional' => FALSE,
+          ),
+        ),
+      ),
+
+      'index' => array(
+        'help' => 'List all currencies',
+        'file' => array('type' => 'inc', 'module' => 'maritpal_services_old', 'name' => 'resources/commerce'),
+        'callback' => '_commerce_currency_index',
+        'access callback' => '_commerce_resource_access',
+        'access arguments' => array('view'),
+        'access arguments append' => TRUE,
+      ),
+    ),
+  );
+
+  $resources['request_service'] = array(
+    'operations' => array(
+      'create' => array(
+        'file' => array('type' => 'inc', 'module' => 'maritpal_services_old', 'name' => 'resources/request'),
+        'help' => 'Create Service request',
+        'callback' => '__service_request_node_create',
+        'args' => array(
+          array(
+            'name' => 'request',
+            'type' => 'array',
+            'description'    => t('An array representing Service request node.'),
+            'source' => 'data',
+            'optional' => FALSE,
+          ),
+        ),
+        'access callback' => '_commerce_resource_access',
+        'access arguments' => array('view'),
+        'access arguments append' => TRUE,
+      ),
+      'update' => array(
+        'file' => array('type' => 'inc', 'module' => 'maritpal_services_old', 'name' => 'resources/request'),
+        'help' => 'Update Service request',
+        'callback' => '__service_request_node_update',
+        'args' => array(
+          array(
+            'name' => 'nid',
+            'optional' => FALSE,
+            'source' => array('path' => 0),
+            'type' => 'int',
+            'description' => 'The nid of the node request to update',
+          ),
+          array(
+            'name' => 'request',
+            'type' => 'array',
+            'description'    => t('An array representing Service request node.'),
+            'source' => 'data',
+            'optional' => FALSE,
+          ),
+        ),
+        'access callback' => '_commerce_resource_access',
+        'access arguments' => array('view'),
+        'access arguments append' => TRUE,
+      ),
+    ),
+    'actions' => array(
+      'price' => array(
+        'help' => 'Calculate and return request service price',
+        'file' => array('type' => 'inc', 'module' => 'maritpal_services_old', 'name' => 'resources/request'),
+        'callback' => '__service_request_price_calculate',
+        'args' => array(
+          array(
+            'name' => 'price',
+            'type' => 'array',
+            'description'    => t('An array representing a price.'),
+            'source' => 'data',
+            'optional' => FALSE,
+          ),
+        ),
+        'access callback' => '_commerce_resource_access',
+        'access arguments' => array('view'),
+        'access arguments append' => TRUE,
+      ),
+    ),
+  );
+
+  return $resources;
+}
+
+/**
+ * Access check callback for user resource.
+ */
+function _commerce_resource_access($op = 'view', $args = array()) {
+  return TRUE;
+}
+
+/**
+ * Callback for Creating Providers and Customers.
+ */
+function maritpal_services_old_user_endpoint() {
+  if ($_SERVER['REQUEST_METHOD'] == 'POST'){
+    // header('HTTP/1.1 405 Not Post');
+
+    $received_json = file_get_contents("php://input",  TRUE);
+    $json = drupal_json_decode($received_json, TRUE);
+
+    if (isset($json)) {
+
+      $user = user_load_by_mail($json['mail']);
+      if (isset($user->uid)) {
+
+        $error_message = t('The e-mail address @mail: is already taken.', array('@mail:' => $json['mail']));
+
+        $responce = array(
+          'error' => $error_message,
+        );
+        
+        header("Content-type: application/json");
+        header("Status: 406 Not Acceptable : ". $error_message);
+        print drupal_json_encode($responce);
+
+        return;
+      }
+
+      $user = (object) NULL;
+      
+      foreach ($json as $key => $value) {
+        $user->$key = $value;
+      }
+
+      // print_r($user);
+      if (isset($json['pass'])) $account = user_save($user, array('pass' => $json['pass']));
+      else $account = user_save($user);
+
+
+      // legal; terms of use
+      if (isset($json['legal']) && $json['legal'] == '1') {
+        // INSERT INTO {legal_accepted} (version, revision, language, uid, accepted) 
+        // VALUES (1, 1, 'en', 900, 1478072425)
+        $legal_id = db_insert('legal_accepted')
+          ->fields(array(
+            'version' => 1,
+            'revision' => 1,
+            'language' => $account->language,
+            'uid' => $account->uid,
+            'accepted' => REQUEST_TIME,
+          ))
+          ->execute();
+      }
+    
+      // -- create responce
+      if (isset($account->uid)) {
+        $responce = array(
+          'uid' => $account->uid,
+        );
+      }
+      else {
+        $responce = array(
+          'error' => 'Invalid data. User was not created.',
+        );
+      }
+      
+      header("Content-type: application/json");
+      print drupal_json_encode($responce);
+
+    }
+  }
+
+  if ($_SERVER['REQUEST_METHOD'] == 'PUT'){
+
+    $received_json = file_get_contents("php://input",  TRUE);
+    $json = drupal_json_decode($received_json, TRUE);
+
+    $user = user_load($json['uid']);
+
+    foreach ($json as $key => $value) {
+      $user->$key = $value;
+    }
+
+    if (isset($json['pass'])) user_save($user, array('pass' => $json['pass']));
+    else user_save($user);
+
+    // -- create responce
+    $responce = array(
+      'uid' => $user->uid,
+    );
+    
+    header("Content-type: application/json");
+    print drupal_json_encode($responce);
+  }
+}
+
+/**
+ * Callback for Creating Service Requests.
+ */
+function maritpal_services_old_request_endpoint() {
+  if ($_SERVER['REQUEST_METHOD'] == 'POST'){
+    // header('HTTP/1.1 405 Not Post');
+
+    $received_json = file_get_contents("php://input",  TRUE);
+    $json = drupal_json_decode($received_json, TRUE);
+
+    if (isset($json)) {
+
+      $node = (object) NULL;
+      
+      foreach ($json as $key => $value) {
+        $node->$key = $value;
+      }
+
+      if (isset($node->field_order_type['und']) && $node->field_order_type['und'][0]['value'] == 2) $node->comment = 2;
+
+      node_save($node);
+    
+      // -- create responce
+      if (isset($node->nid)) {
+        $responce = array(
+          'nid' => $node->nid,
+          'path' => $node->path,
+        );
+      }
+      else {
+        $responce = array(
+          'error' => 'Invalid data. Request was not created.',
+        );
+      }
+      
+      header("Content-type: application/json");
+      print drupal_json_encode($responce);
+    }
+  }
+
+  if ($_SERVER['REQUEST_METHOD'] == 'PUT'){
+
+    $received_json = file_get_contents("php://input",  TRUE);
+    $json = drupal_json_decode($received_json, TRUE);
+
+    $node = node_load($json['nid']);
+
+    if (isset($node->nid)) {
+
+      foreach ($json as $key => $value) {
+        $node->$key = $value;
+      }
+
+      // unset($node->nid);
+
+      node_save($node);
+
+      // -- create responce
+      $responce = array(
+        'nid' => $node->nid,
+        'path' => $node->path,
+      );
+    }
+    else {
+      $error_message = t('Invalid data. Request @nid was not found.', array('@nid' => $json['nid']));
+
+      $responce = array(
+        'error' => $error_message,
+      );
+      header("Status: 404 Not Found : ". $error_message);
+    }
+    
+    header("Content-type: application/json");
+    print drupal_json_encode($responce);
+  }
+}
+
+function _request_service_price_load() {
+  if ($_SERVER['REQUEST_METHOD'] == 'POST'){
+    // header('HTTP/1.1 405 Not Post');
+
+    $received_json = file_get_contents("php://input",  TRUE);
+    $json = drupal_json_decode($received_json, TRUE);
+
+    if (isset($json)) {
+
+      // print drupal_json_encode($json);
+      $data = $json['data'];
+
+      $locs = $data['location'];
+      $cats = $data['category'];
+
+      $locs_revert = array_reverse($locs);
+
+      // -- fetch price rules terms
+      $query = new EntityFieldQuery();
+
+      $query->entityCondition('entity_type', 'taxonomy_term')
+        ->propertyCondition('vid', 23)
+        ->fieldCondition('field_serv_cat', 'tid', $cats, '=')
+        ->fieldCondition('field_serv_loaction', 'tid', $locs_revert, 'CONTAINS')
+        ->addMetaData('account', user_load(4));
+
+      $result = $query->execute();
+
+      if (isset($result['taxonomy_term'])) {
+        $tids = array_keys($result['taxonomy_term']);
+
+        foreach ($locs_revert as $l => $loc) {
+          foreach ($tids as $t => $tid) {
+            $temp_term = taxonomy_term_load($tid);
+            $tloc = $temp_term->field_serv_loaction['und'][0]['tid'];
+
+            if ($loc == $tloc) {
+              $term = $temp_term;
+              break 2;
+            }
+          }
+        }
+      }
+
+      if (!$term) $term = taxonomy_term_load(1988);
+
+      // return $term;
+
+      // -- price parameters
+      $params = array(
+        'date_val' => strtotime($data['date']['value']),
+        'date_val2' => strtotime($data['date']['value2']),
+        'rate' => intval($term->field_serv_rate['und'][0]['value']),
+        'price_hp' => array(
+          'amount' => intval($term->field_serv_price_ph['und'][0]['amount']),
+          'currency_code' => $term->field_serv_price_ph['und'][0]['currency_code'],
+        )
+      );
+      $params['duration'] = ($params['date_val2'] - $params['date_val']) / 3600;
+
+      $price = array(
+        'amount' => round($params['duration'] * ($params['rate'] * $params['price_hp']['amount']), 0, PHP_ROUND_HALF_UP),
+        'currency_code' => $params['price_hp']['currency_code'],
+        'taxes' => array(),
+        'discount' => 0,
+      );
+
+      // -- Admin rate/Transsfer rate/Bank fee
+      // admin fixed
+      $adm_type = variable_get_value('pricing:admin_rate:type');
+      $adm_val = variable_get_value('pricing:admin_rate:value');
+
+      if ($adm_type == 0) $price['taxes']['admin'] = $adm_val;
+      else $price['taxes']['admin'] = round(($price['amount'] / 100) * $adm_val, 0);
+
+      // transfer fixed
+      $trns_type = variable_get_value('pricing:transfer_rate:type');
+      $trns_val = variable_get_value('pricing:transfer_rate:value');
+
+      if ($trns_type == 0) $price['taxes']['transfer'] = $trns_val;
+      else $price['taxes']['transfer'] = round(($price['amount'] / 100) * $trns_val, 0);
+
+      // bank fee
+      $bank_fee = variable_get_value('pricing:bank_fee:value');
+
+      if ($bank_fee) $price['taxes']['bank_fee'] = round(($price['amount'] / 100) * $bank_fee, 0);
+
+      // -- create responce
+      if (!empty($price['amount'])) {
+        $responce = (object)array(
+          'data' => (object)array(
+            'rule' => $term->tid,
+            'total' => $price['amount'] + $price['taxes']['admin'] + $price['taxes']['transfer'] + $price['taxes']['bank_fee'] + $price['discount'],
+            'currency_code' => $price['currency_code'],
+            'components' => (object)array(
+              'base_price' => intval($price['amount']),
+              'admin_tax' => intval($price['taxes']['admin']),
+              'transfer_tax' => intval($price['taxes']['transfer']),
+              'bank_fee' => intval($price['taxes']['bank_fee']),
+              'discount' => intval($price['discount']),
+            ), 
+          ),
+        );
+      }
+      
+      header("Content-type: application/json");
+      print drupal_json_encode($responce);
+    }
+  }
+}
+
+/**
+ * Users privatemsgs endpoint.
+ * 
+ * @param object $account
+ *  User account object
+ *
+ * @return json
+ */
+function maritpal_services_old_users_privatemsg($account) {
+  global $user;
+
+  // -- Load Moderator (rid: 7)
+  $query = db_query(
+    'SELECT thread_id FROM {pm_index} WHERE recipient = :resid AND deleted = 0', 
+    array(':resid' => $account->uid)
+  );
+  $result = $query->fetchAll();
+
+  dpm($result);
+
+  if (count($result) > 0) {
+    $output = array();
+    $thread_ids = array();
+    foreach ($result as $k => $v) {
+      if (!in_array($v->thread_id, $thread_ids)) $thread_ids[] = $v->thread_id;
+    }
+    $output['th_ids'] = $thread_ids;
+    $output['threads'] = array();
+
+    foreach ($thread_ids as $k => $thread_id) {
+      $thread = privatemsg_thread_load($thread_id, $user, 0);
+
+      // $first_mess = array_shift($thread['messages']);
+      // $tread_author = user_load($first_mess->author->uid);
+
+      $tags = maritpal_privatemsg_load_thread_tags($thread['thread_id']);
+
+      $participants = array();
+      foreach ($thread['participants'] as $k => $part) {
+        if ($part->type == 'role') $participants[$k] = $part;
+        if ($part->type == 'user') {
+          $participants[$k] = (object)array(
+            'uid' => $part->uid,
+            'mail' => $part->mail,
+            'timezone' => $part->timezone,
+            'field_prof_username' => $part->field_prof_username,
+            'field_user_ava' => $part->field_user_ava,
+            'roles' => $part->roles,
+            'recipient' => $part->recipient,
+            'type' => $part->type,
+          );
+
+          if (is_array($part->field_user_ava) && count($part->field_user_ava) == 0)
+            $participants[$k]->field_user_ava = (object)array();
+          if (is_array($part->field_prof_username) && count($part->field_prof_username) == 0)
+            $participants[$k]->field_prof_username = (object)array();
+        }
+      }
+
+      $messages = array();
+      foreach ($thread['messages'] as $k => $message) {
+        $messages[$k] = (object)array(
+          'mid' => $message->mid,
+          'author' => $message->author->uid,
+          'subject' => $message->subject,
+          'body' => $message->body,
+          'timestamp' => $message->timestamp,
+          'is_new' => $message->is_new,
+        );
+      }
+
+      $output['threads'][] = (object)array(
+        'thread_id' => $thread['thread_id'],
+        'read_all' => $thread['read_all'],
+        'tags' => $tags,
+        'to' => $thread['to'],
+        'participants' => $participants,
+        'message_count' => $thread['message_count'],
+        'messages' => $messages,
+        'from' => $thread['from'],
+        'start' => $thread['start'],
+        'subject-original' => $thread['subject'],
+        'subject' => $thread['subject']
+      );
+
+    }
+  }
+  else {
+    $output = (object)array();
+  }
+
+  return drupal_json_output($output);
+}
+
+/**
+ * Write privatemsg image to db
+ */
+function maritpal_services_old_privatemsg_image_attach($mid, $fid, $width, $height) {
+  $args = func_get_args();
+  foreach ($args as $arg) {
+    if (is_null($arg) || empty($arg)) return FALSE;
+  }
+
+  $options = array(
+    'entity_type' => 'privatemsg_message',
+    'bundle' => 'privatemsg_message',
+    'entity_id' => $mid,
+    'revision_id' => $mid,
+    'language' => 'und',
+    'delta' => 0,
+    'field_image_fid' => $fid,
+    'field_image_width'

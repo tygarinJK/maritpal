@@ -1,0 +1,8 @@
+name = Maritpal Order
+description = Tool for adding/editing Service Order
+core = 7.x
+package = Maritpal
+
+;scripts[] = maritpal_order.js
+
+dependencies[] = maritpal

@@ -1,0 +1,52 @@
+<?php
+
+/**
+ * Implements hook_permission().
+ */
+// function maritpal_services_permission() {
+//   return array(
+//     'maritpal services' => array(
+//       'title' => t('Maritpal Services access'),
+//       'description' => t(''),
+//     ),
+//   );
+// }
+
+// /**
+//  * Implements hook_perm().
+//  */
+// function maritpal_services_perm() {
+//   return array(
+//     'order resource create',
+//     'order resource view any order',
+//     'order resource view own orders',
+//     'order resource edit any order',
+//     'order resource edit own orders',
+//     'order resource delete any order',
+//     'order resource delete own orders',
+//   );
+// }
+
+/**
+ * Implements hook_services_resources().
+ */
+function maritpal_services_services_resources() {
+  return array(
+   'request' => array(
+      'retrieve' => array(
+        'help' => 'Retrieves a note',
+        'file' => array('file' => 'inc', 'module' => 'maritpal_services', 'name' => 'resources/request_resource'),
+        'callback' => '_request_resource_retrieve',
+        'args' => array(
+          array(
+            'name' => 'nid',
+            'type' => 'int',
+            'description' => 'The id of the note to get',
+            'source' => array('path' => '0'),
+            'optional' => FALSE,
+          ),
+        ),
+      ),
+    ),
+  );
+}

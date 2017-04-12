@@ -1,0 +1,21 @@
+/* Pricing Settings Form */
+#maritpal-admin-pricing-settings-form .form-item {
+	clear: both;
+}
+#maritpal-admin-pricing-settings-form #edit-taxes-container .form-item {
+	display: inline-block;
+}
+
+/* Pricing Rules Form */
+#maritpal-admin-pricing-rules-form .form-item {
+	clear: both;
+}
+#maritpal-admin-pricing-rules-form #edit-rate-container .form-item {
+	display: inline-block;
+}
+#maritpal-admin-pricing-rules-form #edit-actions input[type="submit"] {
+	margin-right: 10px;
+}
+#maritpal-admin-pricing-rules-form #edit-actions a {
+	margin-left: 10px;
+}

@@ -1,0 +1,13 @@
+name = Maritpal
+description = Maritpal Common settings and Contributed modules
+core = 7.x
+package = Maritpal
+
+;scripts[] = maritpal_order.js
+
+configure = admin/maritpal
+
+dependencies[] = variable
+dependencies[] = userpoints
+dependencies[] = services
+dependencies[] = hierarchical_select

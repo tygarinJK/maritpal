@@ -1,0 +1,116 @@
+<?php
+
+/**
+ * Implements hook_permission().
+ */
+// function maritpal_order_actions_permission() {
+//   return array(
+//     'create pricing rules' => array(
+//       'title' => t('Create pricing rules'),
+//       'description' => t('Allows to create pricing rules.'),
+//     ),
+//   );
+// }
+
+/**
+ * Implements hook_menu().
+ */
+function maritpal_order_actions_menu() {
+  $items = array();
+
+  $items['request/%'] = array(
+    'title' => 'Simple page (local action)',
+    'page callback' => 'maritpal_order_actions_calendar',
+    'page arguments' => array(1),
+		'access callback' => TRUE,
+		// 'type' => MENU_LOCAL_ACTION,
+		// 'file' => 'me.pages.inc',
+  );
+
+  return $items;
+}
+
+function maritpal_order_actions_calendar($val) {
+  
+  $url = request_uri();
+  $url_q = parse_url($url, PHP_URL_QUERY);
+  parse_str($url_q, $output);
+
+  // $terms = taxonomy_get_tree(4);
+
+  $node = node_load($val);
+  $order_status = $node->field_request_status['und'][0]['tid'];
+
+  // drupal_set_message(t('message'), 'status', FALSE);
+
+  print $url_q.'<br/>';
+  print $output['action'].'<br/>';
+  print $output['destination'].'<br/>';
+
+  // print_r($terms);
+  print $order_status.'<br/>';
+
+  if ($output['action'] == 'cancel') maritpal_order_actions_cancel($val, $order_status, $node);
+  if ($output['action'] == 'deny') maritpal_order_actions_deny($val, $order_status, $node);
+  if ($output['action'] == 'approve') maritpal_order_actions_approve($val, $order_status, $node);
+  if ($output['action'] == 'submit') maritpal_order_actions_submit($val, $order_status, $node);
+  if ($output['action'] == 'reject') maritpal_order_actions_reject($val, $order_status, $node);
+
+  drupal_goto($output['destination']);
+}
+
+function maritpal_order_actions_cancel($nid, $order_status, $node) {
+  if ($order_status == 12) maritpal_order_actions_change_status($nid, 13, $node);
+  if ($order_status == 14) maritpal_order_actions_change_status($nid, 15, $node);
+
+  drupal_set_message(t('Order was canceled'), 'status', FALSE);
+}
+
+function maritpal_order_actions_deny($nid, $order_status, $node) {
+  $args = func_get_args();
+  dpm('$args');
+
+	maritpal_order_actions_change_status($nid, 17, $node);
+
+	drupal_set_message(t('Order was denied'), 'status', FALSE);
+}
+
+function maritpal_order_actions_approve($nid, $order_status, $node) {
+	if ($order_status == 10) maritpal_order_actions_change_status($nid, 12, $node);
+	if ($order_status == 11) maritpal_order_actions_change_status($nid, 12, $node);
+	
+	drupal_set_message(t('Order was approved'), 'status', FALSE);
+}
+
+function maritpal_order_actions_submit($nid, $order_status, $node) {
+	$order_type = $node->field_order_type['und'][0]['value'];
+
+	if ($order_type == 1 || $order_type == 2) maritpal_order_actions_change_status($nid, 11, $node);
+	if ($order_type == 3) maritpal_order_actions_change_status($nid, 10, $node);
+
+	drupal_set_message(t('Order was submitted'), 'status', FALSE);
+}
+
+function maritpal_order_actions_reject($nid, $order_status, $node) {
+	maritpal_order_actions_change_status($nid, 253, $node);
+
+	drupal_set_message(t('Order was rejected'), 'status', FALSE);
+}
+
+/**
+ * Change request_status
+ * 
+ * @param integer $nid
+ *  Node ID
+ * @param integer $status
+ *  Taxonomy term ID (status to change on)
+ * @param object $node
+ *  Node object
+ */
+function maritpal_order_actions_change_status($nid, $status, $node){
+	$node->field_request_status['und'][0]['tid'] = $status;
+  $node->status = 1;
+	$node->revision = 1;
+	$node->log = 'Node status updated on ' . date('c'); 
+	node_save($node);
+}
