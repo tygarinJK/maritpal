@@ -62,8 +62,8 @@ function maritpal_menu() {
     'weight' => -9,
   );
 
-  $items['admin/maritpal/reports/test'] = array(
-    'title' => t('Reports Test'),
+  $items['admin/maritpal/reports/mdc-figures-by-providers-and-region'] = array(
+    'title' => t('MDC figures by providers and region'),
     'description' => t(''),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('maritpal_reports_mdc_figures_by_providers_and_region_form'),

@@ -86,6 +86,7 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form($form, &$form
 		'#date_timezone' => date_default_timezone(),
 		'#date_format' => 'Y-m-d',
 		'#date_year_range' => '-10:now',
+		'#default_value' => !empty($q_params['period_from']) ? $q_params['period_from'] : NULL,
 	);
 	$form['filters']['period']['period_to'] = array(
 		'#type' => 'date_popup',
@@ -93,6 +94,7 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form($form, &$form
 		'#date_timezone' => date_default_timezone(),
 		'#date_format' => 'Y-m-d',
 		'#date_year_range' => '-10:now',
+		'#default_value' => !empty($q_params['period_to']) ? $q_params['period_to'] : NULL,
 	);
 
 	$form['filters']['mdc'] = array(
@@ -224,9 +226,8 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form($form, &$form
 	);
 	$form['filters']['actions']['cancel'] = array(
 		'#type' => 'item',
-		'#markup' => '<a href="#">'. t('Cancel') .'</a>',
+		'#markup' => '<a href="/'. current_path() .'">'. t('Reset') .'</a>',
 	);
-
 
 	$query = 'SELECT DISTINCT(ur.uid) 
 	 					FROM {users_roles} AS ur
@@ -278,11 +279,26 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form($form, &$form
 
 		$result = $query->execute();
 		$uids = array_keys($result['user']);
-		dpm($uids);
+		// dpm($uids);
 
 		foreach ($users as $uid => $user) {
 			if (!in_array($uid, $uids)) unset($users[$uid]);
 		}
+
+		// Deapest filtered category mdc
+		if (!empty($q_params['service_category'])) {
+			foreach ($users as $uid => $user) {
+				foreach ($user->deapest_service_categories as $tid => $category_tid) {
+					$tree = taxonomy_get_parents_all($tid);
+					$match = FALSE;
+					foreach ($tree as $i => $term) {
+						if ($term->tid == $q_params['service_category']) $match = TRUE;
+					}
+					if (!$match) unset($user->deapest_service_categories[$tid]);
+				}
+			}
+		}
+
 	}
 
 	// Count users for each MDC
@@ -294,16 +310,14 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form($form, &$form
 	}
 
 	// get regular service order of mdc 
-	$query = new EntityFieldQuery();
-	$res = $query->entityCondition('entity_type', 'node')
-		->entityCondition('bundle', 'request')
-		->fieldCondition('field_order_type', 'value', 1, '=')
-		->addMetaData('account', user_load(4));
+	// $query = new EntityFieldQuery();
+	// $res = $query->entityCondition('entity_type', 'node')
+	// 	->entityCondition('bundle', 'request')
+	// 	->fieldCondition('field_order_type', 'value', 1, '=')
+	// 	->addMetaData('account', user_load(4));
 	
-	$res = $query->execute();
+	// $res = $query->execute();
 	
-	// dpm($res);
-
 	// fill table rows
 	$rows = array();
 	foreach ($count_users as $key => $values) {
@@ -320,6 +334,11 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form($form, &$form
 			->fieldCondition('field_serv_loc_city', 'tid', $mdc[1], '=')
 			->fieldCondition('field_request_serv_cat', 'tid', $mdc[0], '=')
 			->addMetaData('account', user_load(4));
+
+		if (!empty($q_params['period_from']))
+			$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
+		if (!empty($q_params['period_to']))
+			$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
 	
 		$reg_orders = $query->execute();
 
@@ -331,6 +350,11 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form($form, &$form
 			->fieldCondition('field_serv_loc_city', 'tid', $mdc[1], '=')
 			->fieldCondition('field_request_serv_cat', 'tid', $mdc[0], '=')
 			->addMetaData('account', user_load(4));
+
+		if (!empty($q_params['period_from']))
+			$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
+		if (!empty($q_params['period_to']))
+			$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
 	
 		$bid_orders = $query->execute();
 
@@ -399,12 +423,8 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form_submit(&$form
 	if (!empty($form_state['values']['service_location'][0])) $q_params['service_location'] = $form_state['values']['service_location'][0];
 	if (!empty($form_state['values']['service_category'][0])) $q_params['service_category'] = $form_state['values']['service_category'][0];
 
-	// dpm($q_params, url('/'. current_path(), array('query' => $q_params)));
-
 	if(count($q_params) > 0)
 		$form_state['redirect'] = array(current_path(), array('query' => $q_params));
-
-	dpm($form_state);
 }
 
 /**

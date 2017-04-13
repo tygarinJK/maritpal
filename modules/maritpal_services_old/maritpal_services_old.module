@@ -610,4 +610,215 @@ function maritpal_services_old_privatemsg_image_attach($mid, $fid, $width, $heig
     'language' => 'und',
     'delta' => 0,
     'field_image_fid' => $fid,
-    'field_image_width'
+    'field_image_width' => $width,
+    'field_image_height' => $height,
+  );
+
+  $result = db_select('field_data_field_image', 'img')
+    ->fields('img', array('entity_id'))
+    ->condition('entity_id', $mid, '=')
+    ->execute()
+    ->fetchCol();
+    
+  // dpm($result);
+
+  if (count($result) == 0) {
+    $result['insert'][] = db_insert('field_data_field_image')
+      ->fields($options)
+      ->execute();
+
+    $result['insert'][] = db_insert('field_revision_field_image')
+      ->fields($options)
+      ->execute();
+
+    cache_clear_all('*', 'cache_page', TRUE);
+  }
+
+  return $result['insert'][0] >= 0 && $result['insert'][1] >= 0 ? TRUE : FALSE;
+}
+
+/**
+ * Calculate Request service price depend on Pricing rule
+ *
+ * @param arr $location
+ *  MDC location array
+ * @param int $category
+ *  MDC Category
+ * @param arr $date
+ *  Date array
+ * @param str $mail
+ *  (optional) User mail
+ *
+ * @return object
+ *  Price object
+ */
+function maritpal_services_old_calculate_request_service_price($location, $category, $date, $mail = NULL) {
+  $pricing_rule = maritpal_services_old_get_pricing_rule($location, $category, $date, $mail);
+
+  if (!$pricing_rule) return FALSE;
+
+  // -- price parameters
+  $params = array(
+    'date_val' => strtotime($date['value']),
+    'date_val2' => strtotime($date['value2']),
+    'rate' => floatval($pricing_rule->field_serv_rate['und'][0]['value']),
+    'per' => $pricing_rule->field_serv_rate_dur['und'][0]['value'],
+    'price_hp' => array(
+      'amount' => intval($pricing_rule->field_serv_rate_amount['und'][0]['value']),
+      'currency_code' => $pricing_rule->field_serv_rate_currency['und'][0]['currency_code'],
+    )
+  );
+  $params['duration'] = ($params['date_val2'] - $params['date_val']) / 3600;
+
+  $price = array(
+    'currency_code' => $params['price_hp']['currency_code'],
+    'taxes' => array(),
+    'discount' => 0,
+  );
+
+  if ($params['per'] == 'hour')
+    $price['amount'] = round($params['duration'] * ($params['rate'] * $params['price_hp']['amount']), 0, PHP_ROUND_HALF_UP);
+  else
+    $price['amount'] = $params['price_hp']['amount'];
+
+  // -- Admin rate/Transsfer rate/Bank fee
+  // admin tax
+  $admin_tax = variable_get('maritpal_admin_rate', 0);
+  $price['taxes']['admin'] = round(($price['amount'] / 100) * $admin_tax, 0);
+
+  // transfer tax
+  $transfer_tax = variable_get('maritpal_transfer_rate', 0);
+  $price['taxes']['transfer'] = round(($price['amount'] / 100) * $transfer_tax, 0);
+
+  // surcharge tax
+  $surcharge_tax = variable_get('maritpal_surcharge_rate', 0);
+  $price['taxes']['surcharge'] = round(($price['amount'] / 100) * $surcharge_tax, 0);
+
+  // additional taxes
+  $addditional_taxes = variable_get('maritpal_additional_taxes', array());
+  foreach ($addditional_taxes as $i => $tax) {
+    $price['taxes']['additional'][] = array(
+      'name' => $tax['name'],
+      'amount' => round(($price['amount'] / 100) * $tax['value'], 0),
+    );
+    $price['taxes']['additional']['sum'] += round(($price['amount'] / 100) * $tax['value'], 0);
+  }
+
+  // -- create result
+  if (!empty($price['amount'])) {
+    return (object)array(
+      'data' => (object)array(
+        'rule' => $pricing_rule->tid,
+        'total' => $price['amount'] + $price['taxes']['admin'] + $price['taxes']['transfer'] + $price['taxes']['surcharge'] + $price['taxes']['additional']['sum'] + $price['discount'],
+        'currency_code' => $price['currency_code'],
+        'components' => (object)array(
+          'base_price' => intval($price['amount']),
+          'admin_tax' => intval($price['taxes']['admin']),
+          'transfer_tax' => intval($price['taxes']['transfer']),
+          'bank_fee' => intval($price['taxes']['bank_fee']),
+          'surcharge' => intval($price['taxes']['surcharge']),
+          'additional_taxes' => intval($price['taxes']['additional']['sum']),
+          'discount' => intval($price['discount']),
+        ), 
+      ),
+    );
+  }
+  else return FALSE;
+}
+
+/**
+ * Calculate Request service price depend on Pricing rule
+ *
+ * @param arr $location
+ *  MDC location array
+ * @param int $category
+ *  MDC Category
+ * @param arr $date
+ *  Date array
+ * @param str $mail
+ *  (optional) User mail
+ *
+ * @return object
+ *  Taxonomy term object
+ */
+function maritpal_services_old_get_pricing_rule($location, $category, $date, $mail = NULL) {
+  $location_reverse = array_reverse($location);
+
+  // -- fetch price rules terms
+  $query = new EntityFieldQuery();
+  $q = $query->entityCondition('entity_type', 'taxonomy_term')
+    ->propertyCondition('vid', 23)
+    ->fieldCondition('field_serv_cat', 'tid', $category, '=')
+    ->fieldCondition('field_serv_loaction', 'tid', $location_reverse, 'CONTAINS')
+    ->addMetaData('account', user_load(4));
+  
+  // If email filled
+  if (!is_null($mail)) {
+    $qmail = $query->fieldCondition('field_serv_sp_mail', 'email', $mail, '=');
+    $result = $qmail->execute();
+
+    // if result exist
+    if (isset($result['taxonomy_term'])) {
+      $tids = array_keys($result['taxonomy_term']);
+      foreach ($location_reverse as $loc) {
+        foreach ($tids as $tid) {
+          $pricing_rule = taxonomy_term_load($tid);
+          $pr_location_tid = $pricing_rule->field_serv_loaction['und'][0]['tid'];
+          if ($loc == $pr_location_tid) {
+            $term = $pricing_rule;
+            break 2;
+          }
+        }
+      }
+    }
+    // if no result search on just categories 
+    else {
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'taxonomy_term')
+        ->propertyCondition('vid', 23)
+        ->fieldCondition('field_serv_cat', 'tid', $category, '=')
+        ->fieldCondition('field_serv_loaction', 'tid', $location_reverse, 'CONTAINS')
+        ->addMetaData('account', user_load(4));
+      $result = $query->execute();
+
+      if (isset($result['taxonomy_term'])) {
+        $tids = array_keys($result['taxonomy_term']);
+        foreach ($location_reverse as $loc) {
+          foreach ($tids as $tid) {
+            $pricing_rule = taxonomy_term_load($tid);
+            $pr_location_tid = $pricing_rule->field_serv_loaction['und'][0]['tid'];
+
+            if (empty($pricing_rule->field_serv_sp_mail['und'][0]['email'])) {
+              if ($loc == $pr_location_tid) {
+                $term = $pricing_rule;
+                break 2;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  else $result = $q->execute();
+
+  if (isset($result['taxonomy_term'])) {
+    $tids = array_keys($result['taxonomy_term']);
+    foreach ($location_reverse as $loc) {
+      foreach ($tids as $tid) {
+        $pricing_rule = taxonomy_term_load($tid);
+        $pr_location_tid = $pricing_rule->field_serv_loaction['und'][0]['tid'];
+
+        if (empty($pricing_rule->field_serv_sp_mail['und'][0]['email'])) {
+          if ($loc == $pr_location_tid) {
+            $term = $pricing_rule;
+            break 2;
+          }
+        }
+      }
+    }
+  }
+
+  // if (!isset($term)) $term = taxonomy_term_load(1988);
+  if (!isset($term)) return FALSE;
+  return $term;
+}

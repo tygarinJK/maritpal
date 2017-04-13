@@ -255,7 +255,7 @@ function maritpal_admin_pricing_rules_form($form, &$form_state, $term = NULL) {
       'render_flat_select' => 0,
     ),
     '#description' => t(''),
-    '#default_value' => '',//_service_category_default_value($term->field_serv_loaction['und'][0]['tid']),
+    '#default_value' => _service_category_default_value($term->field_serv_loaction['und'][0]['tid']),
     '#required' => TRUE,
     '#weight' => -49,
   );
@@ -320,7 +320,7 @@ function maritpal_admin_pricing_rules_form($form, &$form_state, $term = NULL) {
   $form['provider_mail'] = array(
   	'#type' => 'textfield',
   	'#title' => t('Provider Email'),
-  	'#default_value' => isset($term->field_serv_sp_mail['und']) ? $term->field_serv_sp_mail['und'][0]['value'] : '',
+  	'#default_value' => !empty($term->field_serv_sp_mail['und']) ? $term->field_serv_sp_mail['und'][0]['email'] : '',
   	'#size' => 60, 
 	  '#maxlength' => 128, 
   );
@@ -397,7 +397,7 @@ function maritpal_admin_pricing_rules_form_submit($form, &$form_state) {
 	
 	if (isset($form_state['term'])) $term = $form_state['term'];
 
-	$term->name = !empty($form_state['values']['admin_title']) ? $form_state['values']['admin_title'] : '__';
+	// $term->name = !empty($form_state['values']['admin_title']) ? $form_state['values']['admin_title'] : '__';
 	$term->uid = $user->uid;
 	$term->vid = 23;
 	$term->field_serv_loaction['und'][0]['tid'] = $form_state['values']['request_serv_loc_hs'][1];
