@@ -172,7 +172,7 @@ function maritpal_admin_pricing_settings_form_submit(&$form, &$form_state) {
 	}
 	variable_set('maritpal_additional_taxes', $form_state['values']['maritpal_taxes']);
 
-	dpm($form_state);
+	// dpm($form_state);
   drupal_theme_rebuild();
 }
 
@@ -190,7 +190,7 @@ function maritpal_ajax_add_tax_callback($form, $form_state) {
  */
 function maritpal_admin_pricing_rules_form($form, &$form_state, $term = NULL) {
 	if (!is_null($term)) {
-		dpm($term);
+		// dpm($term);
 		$form_state['term'] = $term;
 	}
 
@@ -416,7 +416,7 @@ function maritpal_admin_pricing_rules_form_submit($form, &$form_state) {
 	$form_state['redirect'] = '/admin/maritpal/pricing-rules';
 	drupal_set_message(t('Pricing Rule was successfuly created'), 'status', FALSE);
 
-	dpm($form_state);
+	// dpm($form_state);
 }
 
 /**

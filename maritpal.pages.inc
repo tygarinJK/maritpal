@@ -36,8 +36,8 @@ function maritpal_pricing_rules_review() {
 				'serv_rate' => $rate_amount .' '. $rate_currency,
 				'serv_duration' => isset($term->field_serv_rate_dur['und']) ? $term->field_serv_rate_dur['und'][0]['value'] : '',
 				'operations' => 
-					'<a href="/admin/maritpal/pricing-rules/'. $term->tid .'/edit">'. t('Edit') .'</a> | '.
-					'<a href="/admin/maritpal/pricing-rules/'. $term->tid .'/delete">'. t('Delete') .'</a>',
+					'<a href="/admin/maritpal/settings/pricing-rules/'. $term->tid .'/edit">'. t('Edit') .'</a> | '.
+					'<a href="/admin/maritpal/settings/pricing-rules/'. $term->tid .'/delete">'. t('Delete') .'</a>',
   		);
   	}
   }
@@ -416,6 +416,319 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form($form, &$form
 function maritpal_reports_mdc_figures_by_providers_and_region_form_validate(&$form, &$form_state) {
 }
 
+// function maritpal_reports_mdc_figures_by_providers_and_region_form_submit(&$form, &$form_state) {
+// 	$q_params = array();
+// 	if (!empty($form_state['values']['period_from'])) $q_params['period_from'] = $form_state['values']['period_from'];
+// 	if (!empty($form_state['values']['period_to'])) $q_params['period_to'] = $form_state['values']['period_to'];
+// 	if (!empty($form_state['values']['service_location'][0])) $q_params['service_location'] = $form_state['values']['service_location'][0];
+// 	if (!empty($form_state['values']['service_category'][0])) $q_params['service_category'] = $form_state['values']['service_category'][0];
+
+// 	if(count($q_params) > 0)
+// 		$form_state['redirect'] = array(current_path(), array('query' => $q_params));
+// }
+
+/**
+ *
+ */
+function maritpal_reports_mdc_figures_by_orders_form($form, $form_state) {
+	// Path query
+	$q_params = drupal_get_query_parameters();
+	dpm($q_params);
+
+	$form['filters'] = array(
+		'#type' => 'fieldset',
+		'#title' => t('Filters'),
+		'#collapsible' => TRUE,
+		'#collapsed' => TRUE,
+	);
+	$form['filters']['period'] = array(
+		'#type' => 'fieldset',
+		'#title' => t('Period'),
+		'#collapsible' => TRUE,
+		'#collapsed' => FALSE,
+	);
+	$form['filters']['period']['period_from'] = array(
+		'#type' => 'date_popup',
+		'#title' => t('From'),
+		'#date_timezone' => date_default_timezone(),
+		'#date_format' => 'Y-m-d',
+		'#date_year_range' => '-10:now',
+		'#default_value' => !empty($q_params['period_from']) ? $q_params['period_from'] : NULL,
+	);
+	$form['filters']['period']['period_to'] = array(
+		'#type' => 'date_popup',
+		'#title' => t('To'),
+		'#date_timezone' => date_default_timezone(),
+		'#date_format' => 'Y-m-d',
+		'#date_year_range' => '-10:now',
+		'#default_value' => !empty($q_params['period_to']) ? $q_params['period_to'] : NULL,
+	);
+
+	$form['filters']['mdc'] = array(
+		'#type' => 'fieldset',
+		'#title' => t('MDC'),
+		'#collapsible' => TRUE,
+		'#collapsed' => TRUE,
+	);
+	$form['filters']['mdc']['service_location'] = array(
+		'#type' => 'hierarchical_select',
+    '#title' => t('Location'),
+    '#size' => 1,
+    '#config' => array(
+      'module' => 'hs_taxonomy',
+      'params' => array(
+        'vid' => 14,
+        'separator' => '|',
+      ),
+      'save_lineage'    => 0,
+      'enforce_deepest' => 0,
+      'resizable'       => 0,
+      'level_labels' => array(
+        'status' => 1,
+        'labels' => array(
+          0 => t(' - Select Country - '),
+          1 => t(' - Select City - '),
+        ),
+      ),
+      'dropbox' => array(
+        'status'   => 0,
+        'title'    => t('All selections'), 
+        'limit'    => 0,
+        'reset_hs' => 1,
+        'sort'     => 1,
+      ),
+      'editability' => array(
+        'status'           => 0,
+        'item_types'       => array(),
+        'allowed_levels'   => array(
+          0 => 0,
+          1 => 0,
+          2 => 1,
+        ),
+        'allow_new_levels' => 0,
+        'max_levels'       => 3,
+      ),
+      'entity_count'    => array(
+        'enabled' => 0,
+        'require_entity' => 0,
+        'settings' => array(
+          'count_children' => 0,
+          'entity_types' => array(),
+        ),
+      ),
+      // These settings cannot be configured through the UI: they can only be
+      // overridden through code.
+      'animation_delay'    => 400,
+      'exclusive_lineages' => array(),
+      'render_flat_select' => 0,
+    ),
+    '#description' => t(''),
+    '#default_value' => !empty($q_params['service_location']) ? $q_params['service_location'] : '',
+    '#weight' => -49,
+	);
+	$form['filters']['mdc']['service_category'] = array(
+		'#type' => 'hierarchical_select',
+    '#title' => t('Category'),
+    '#size' => 1,
+    '#config' => array(
+      'module' => 'hs_taxonomy',
+      'params' => array(
+        'vid' => 13,
+        'separator' => '|',
+      ),
+      'save_lineage'    => 0,
+      'enforce_deepest' => 0,
+      'resizable'       => 0,
+      'level_labels' => array(
+        'status' => 1,
+        'labels' => array(
+          0 => t(' - MDC 1 - '),
+          1 => t(' - MDC 2 - '),
+          2 => t(' - MDC 3 - '),
+          3 => t(' - MDC 4 - '),
+        ),
+      ),
+      'dropbox' => array(
+        'status'   => 0,
+        'title'    => t('All selections'),
+        'limit'    => 0,
+        'reset_hs' => 1,
+        'sort'     => 1,
+      ),
+      'editability' => array(
+        'status'           => 0,
+        'item_types'       => array(),
+        'allowed_levels'   => array(
+          0 => 0,
+          1 => 0,
+          2 => 1,
+        ),
+        'allow_new_levels' => 0,
+        'max_levels'       => 4,
+      ),
+      'entity_count'    => array(
+        'enabled' => 0,
+        'require_entity' => 0,
+        'settings' => array(
+          'count_children' => 0,
+          'entity_types' => array(),
+        ),
+      ),
+      // These settings cannot be configured through the UI: they can only be
+      // overridden through code.
+      'animation_delay'    => 400,
+      'exclusive_lineages' => array(),
+      'render_flat_select' => 0,
+    ),
+    '#description' => t(''),
+    '#default_value' => !empty($q_params['service_category']) ? $q_params['service_category'] : '',
+	);
+
+	$form['filters']['actions'] = array(
+		'#type' => 'container',
+	);
+	$form['filters']['actions']['submit'] = array(
+		'#type' => 'submit',
+		'#value' => t('Filter'),
+	);
+	$form['filters']['actions']['cancel'] = array(
+		'#type' => 'item',
+		'#markup' => '<a href="/'. current_path() .'">'. t('Reset') .'</a>',
+	);
+
+	$query = new EntityFieldQuery();
+	$orders = $query->entityCondition('entity_type', 'node')
+		->entityCondition('bundle', 'request')
+		->addMetaData('account', user_load(4));
+
+	// if (!empty($q_params['service_location']))
+	// 	$query->fieldCondition('field_serv_loc_city', 'tid', $q_params['service_location'], '=');
+	// if (!empty($q_params['service_category']))
+	// 	$query->fieldCondition('field_request_serv_cat', 'tid', $q_params['service_category'], '=');
+
+	if (!empty($q_params['period_from']))
+		$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
+	if (!empty($q_params['period_to']))
+		$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
+
+	$orders = $query->execute();
+
+	// fill table rows
+	$rows = array();
+	if (isset($orders['node'])) {
+		$nids = array_keys($orders['node']);
+		$nodes = node_load_multiple($nids);
+
+		dpm($nodes);
+
+		$statistics = array();
+		foreach ($nodes as $node) {
+			// sort by mdc
+			$statistics['mdc'][$node->field_serv_loc_city['und'][0]['tid'] .'_'. $node->field_request_serv_cat['und'][0]['tid']][$node->nid] = $node->nid;
+			// direct orders
+			if ($node->field_order_type['und'][0]['value'] == 1) {
+				$statistics['direct_orders']['orders'][] = $node;
+			}
+		}
+	}
+
+	dpm($statistics);
+
+	// foreach ($count_users as $key => $values) {
+	// 	$mdc = explode('_', $key);
+	// 	$categories = maritpal_get_mdc_category_tree($mdc[0]);
+	// 	$location = maritpal_get_mdc_location_tree($mdc[1]);
+
+
+	// 	// get regular service order of mdc 
+		// $query = new EntityFieldQuery();
+		// $reg_orders = $query->entityCondition('entity_type', 'node')
+		// 	->entityCondition('bundle', 'request')
+		// 	->fieldCondition('field_order_type', 'value', 1, '=')
+		// 	->fieldCondition('field_serv_loc_city', 'tid', $mdc[1], '=')
+		// 	->fieldCondition('field_request_serv_cat', 'tid', $mdc[0], '=')
+		// 	->addMetaData('account', user_load(4));
+
+	// 	if (!empty($q_params['period_from']))
+	// 		$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
+	// 	if (!empty($q_params['period_to']))
+	// 		$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
+	
+		// $reg_orders = $query->execute();
+
+	// 	// get bid service order of mdc 
+	// 	$query = new EntityFieldQuery();
+	// 	$bid_orders = $query->entityCondition('entity_type', 'node')
+	// 		->entityCondition('bundle', 'request')
+	// 		->fieldCondition('field_order_type', 'value', 2, '=')
+	// 		->fieldCondition('field_serv_loc_city', 'tid', $mdc[1], '=')
+	// 		->fieldCondition('field_request_serv_cat', 'tid', $mdc[0], '=')
+	// 		->addMetaData('account', user_load(4));
+
+	// 	if (!empty($q_params['period_from']))
+	// 		$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
+	// 	if (!empty($q_params['period_to']))
+	// 		$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
+	
+	// 	$bid_orders = $query->execute();
+
+	// 	$rows[] = array(
+	// 		'mdc_0' => $categories['mdc_0'], 
+	// 		'mdc_1' => $categories['mdc_1'], 
+	// 		'mdc_2' => $categories['mdc_2'],
+	// 		'mdc_3' => $categories['mdc_3'],
+	// 		'country' => $location['country'],
+	// 		'city' => $location['city'],
+	// 		'no_prov' => count($values),
+	// 		'regular_order' => count($reg_orders['node']),
+	// 		'bit_order' => count($bid_orders['node']),
+	// 		'ratio_order_prov' => round((count($reg_orders['node']) + count($bid_orders['node'])) / count($values), 2),
+	// 	);
+	// }
+
+	$per_page = 50;
+	// Initialize the pager
+	$current_page = pager_default_initialize(count($rows), $per_page);
+	// Split list into page sized chunks
+	$chunks = array_chunk($rows, $per_page, TRUE);
+
+	$output = theme_table(array(
+		'header' => array(
+			'mdc_0' => t('MDC level 1'), 
+			'mdc_1' => t('MDC level 2'), 
+			'mdc_2' => t('MDC level 3'),
+			'mdc_3' => t('MDC level 4'),
+			'country' => t('Country'),
+			'city' => t('City'),
+			'direct_created' => t('Direct Orders created'),
+			'direct_confirmed' => t('Confirmed Orders'),
+			'direct_opened' => t('Open Orders'),
+			'direct_canceled' => t('Canceled Orders'),
+			'direct_closed' => t('Closed Orders'),
+			'bid_created' => t('Bid Orders created'),
+			'bid_no_pro' => t('Bid Orders with no proposal'),
+			'bid_not_confirmed' => t('Bid Orders not confirmed'),
+		),
+		'rows' => $chunks[$current_page],
+		'attributes' => array(),
+		'caption' => t(''),
+		'colgroups' => array(),
+		'sticky' => FALSE,
+		'empty' => t('No items found'),
+	));
+
+	// Show the pager
+	$output .= theme('pager', array('quantity',count($rows)));
+
+	$form['result_table'] = array(
+		'#markup' => $output,
+	);
+
+	$form['#attached']['css'][] = drupal_get_path('module', 'maritpal') .'/css/maritpal.css';
+	$form['#submit'][] = 'maritpal_reports_mdc_figures_by_providers_and_region_form_submit';
+	return $form;	
+}
+
 function maritpal_reports_mdc_figures_by_providers_and_region_form_submit(&$form, &$form_state) {
 	$q_params = array();
 	if (!empty($form_state['values']['period_from'])) $q_params['period_from'] = $form_state['values']['period_from'];
@@ -425,6 +738,8 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form_submit(&$form
 
 	if(count($q_params) > 0)
 		$form_state['redirect'] = array(current_path(), array('query' => $q_params));
+
+	dpm($form_state);
 }
 
 /**
