@@ -28,6 +28,16 @@ function maritpal_permission() {
  * Implements hook_menu().
  */
 function maritpal_menu() {
+  $items['user/%user/balance/deposit-cash'] = array(
+    'title' => t('Account Balance deposit cash'),
+    'description' => t(''),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('maritpal_commerce_account_balance_deposit_cash', 1),
+    'access arguments' => array('deposit to own account'),
+    'file' => 'maritpal.pages.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+
   $items['admin/maritpal/settings'] = array(
     'title' => t('Maritpal Settings'),
     'description' => t(''),
@@ -94,6 +104,7 @@ function maritpal_menu() {
     // 'page callback' => 'maritpal_reports_mdc_figures_by_providers_and_region_form',
     'access arguments' => array('maritpal settings'),
     'file' => 'maritpal.pages.inc',
+    'weight' => 3,
     'type' => MENU_LOCAL_TASK,
   );
 
@@ -466,15 +477,19 @@ function maritpal_calculate_service_order_price($location, $category, $start_dat
 }
 
 /**
- * Load children taxonomy 
- *
- * @param number $tread_id
- *  ID of a thrad to search
- * @param number $tag_id
- *  ID aof a tag to search
- *
- * @return boolean
+ * Alter db shema
  */
+// function maritpal_schema_alter(&$schema) {
+//   // Alter Commerce Account Balance schema
+//   if (isset($schema['commerce_transaction'])) {
+//     $schema['commerce_transaction']['fields']['currency_code'] = array(
+//       'type' => 'text',
+//       'not null' => TRUE,
+//       'default' => commerce_default_currency(),
+//       'description' => 'User balance currency.',
+//     );
+//   }
+// }
 
 /**
  * Check if thread has tag
@@ -566,4 +581,20 @@ function maritpal_privatemsg_load_tag($tag_id) {
   }
 
   return $tag;
+}
+
+/**
+ * Return select formated enabled currency options
+ *
+ * @return array;
+ */
+function _get_enabled_currencies_options() {
+  $currencies = commerce_currencies(TRUE);
+
+  $result = array();
+  foreach ($currencies as $cc => $currency) {
+    $result[$cc] = $currency['name'] .' ('. $currency['code'] .')';
+  }
+
+  return $result;
 }

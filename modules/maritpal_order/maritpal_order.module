@@ -508,13 +508,11 @@ function maritpal_order_request_service_order_form_submit($form, &$form_state) {
 
   $node->field_request_serv_cat[LANGUAGE_NONE][0]['tid'] = intval(end($cats));
 
-  // dpm($node);
-
   node_save($node);
 
-  drupal_set_message(t('Request <strong>@name:</strong> was succesfully created', array('@name:' => $node->title)), 'status', FALSE);
+  $form_state['redirect'] = 'user/'. $user->uid .'/browse-orders/draft';
 
-  // if (!isset($output['destination'])) drupal_goto('node/'.$node->nid);
+  drupal_set_message(t('Request <strong>@name:</strong> was succesfully created', array('@name:' => $node->title)), 'status', FALSE);
 }
 
 /**

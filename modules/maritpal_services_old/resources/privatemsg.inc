@@ -120,3 +120,23 @@ function __privatemsg_services_send(array $message) {
     }
   }
 }
+
+/**
+ * Mark thread messages as read.
+ *
+ * @param int $thread_id
+ *   Privatemsg thread id.
+ * @param obj $data
+ *   Privatemsg data.
+ *
+ * @return boolean
+ */
+function _privatemsg_mark_as_read($thread_id, $data) {
+	foreach ($data as $key => $value) {
+		if (!isset($key) || empty($value)) {
+			return services_error(t('Field @field is required.', array('@field' => $key)), 406);
+		}
+	}
+
+  return maritpal_services_old_privatemsg_mark_as_read($thread_id, $data['uid']);
+}

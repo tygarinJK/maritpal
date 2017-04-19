@@ -69,6 +69,9 @@ function maritpal_services_old_menu() {
  * Implement hook_services_resources_alter
  */
 function maritpal_services_old_services_resources_alter(&$resources, &$endpoint) {
+  $resources['user']['actions']['login']['file'] = array('type' => 'inc', 'module' => 'maritpal_services_old', 'name' => 'resources/user_resource');
+  $resources['user']['actions']['login']['callback'] = '__user_resource_login';
+
   $resources['privatemsg']['actions']['ticket'] = array(
     'file' => array(
       'type' => 'inc',
@@ -77,6 +80,32 @@ function maritpal_services_old_services_resources_alter(&$resources, &$endpoint)
     ), 
     'callback' => '_privatemsg_ticket',
     'args' => array(
+      array(
+        'name' => 'data', 
+        'optional' => FALSE, 
+        'type' => 'array',
+        'source' => 'data', 
+        'description' => 'Privastemsg data.', 
+      ),
+    ), 
+    'access callback' => 'services_access_menu',
+  );
+
+  $resources['privatemsg']['actions']['mark_read'] = array(
+    'file' => array(
+      'type' => 'inc',
+      'module' => 'maritpal_services_old',
+      'name' => 'resources/privatemsg',
+    ), 
+    'callback' => '_privatemsg_mark_as_read',
+    'args' => array(
+      array(
+        'name' => 'thid',
+        'optional' => FALSE,
+        'source' => array('path' => 1),
+        'type' => 'int',
+        'description' => 'The thread_id of privatemsg thread',
+      ),
       array(
         'name' => 'data', 
         'optional' => FALSE, 
@@ -821,4 +850,24 @@ function maritpal_services_old_get_pricing_rule($location, $category, $date, $ma
   // if (!isset($term)) $term = taxonomy_term_load(1988);
   if (!isset($term)) return FALSE;
   return $term;
+}
+
+/**
+ * Mark thread messages as read.
+ *
+ * @param int $thread_id
+ *   Privatemsg thread id.
+ * @param obj $uid
+ *   User ID.
+ *
+ * @return boolean
+ */
+function maritpal_services_old_privatemsg_mark_as_read($thread_id, $uid) {
+  $result = db_update('pm_index')
+    ->fields(array('is_new' => 0))
+    ->condition('thread_id', $thread_id, '=')
+    ->condition('recipient', $uid, '=')
+    ->execute();
+    
+  return is_numeric($result) ? TRUE : FALSE;
 }
