@@ -64,7 +64,130 @@ function maritpal_account_balance_menu() {
     'type' => MENU_LOCAL_ACTION,
   );
 
+  // addit
+  $items['balance'] = array(
+    'title' => 'Account balance',
+    'description' => 'Consult account balance and deposit money',
+    'page callback' => 'commerce_account_balance_deposit_form_wrapper',
+    'access arguments' => array('deposit to own account'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'includes/commerce_account_balance.pages.inc',
+  );
+  $items['balance/add'] = array(
+    'title' => 'Balance',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+
+  $items['purchase/%ctools_js/%/%/%/%/%'] = array(
+    'title' => 'purchase',
+    'page callback' => 'commerce_account_balance_purchase_confirmation',
+    'page arguments' => array(1, 2, 3, 4, 5, 6),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/commerce_account_balance.pages.inc',
+  );
+
   return $items;
+}
+
+/**
+ * Implements hook_entity_info().
+ *
+ * Creates a transaction entity. This entity shows all the purchases
+ * and deposits done on the website.
+ */
+function maritpal_account_balance_entity_info() {
+  $return = array(
+    'maritpal_account_balance_transaction' => array(
+      'label' => t('Commerce Account Balance Transaction'),
+      'label plural' => t('Account balance transactions'),
+      'base table' => 'maritpal_account_balance_transaction',
+      'controller class' => 'EntityAPIController',
+      'entity class' => 'Entity',
+      'module' => 'maritpal_account_balance',
+      'fieldable' => FALSE,
+      'entity keys' => array(
+        'id' => 'transaction_id',
+      ),
+      'static cache' => FALSE,
+    ),
+  );
+  return $return;
+}
+
+/**
+ * Implements hook_entity_property_info_alter().
+ *
+ * We use the hook_entity_property_info_alter hook because the Entity API
+ * already defines a lot of our properties and we just want to tweak them
+ * a little bit.
+ */
+function maritpal_account_balance_entity_property_info_alter(&$info) {
+  $properties = array(
+    'transaction_id' => array(
+      'label' => t("Unique transaction ID"),
+      'description' => t('Unique transaction ID.'),
+      'schema field' => 'transaction_id',
+    ),
+    'order_id' => array(
+      'label' => t("Order ID"),
+      'description' => t('The order ID this transaction belongs to.'),
+      'type' => 'commerce_order',
+      'setter callback' => 'entity_property_verbatim_set',
+      'schema field' => 'order_id',
+    ),
+    'action' => array(
+      'label' => t("Transaction action"),
+      'description' => t('Description of the action of the transaction.'),
+      'setter callback' => 'entity_property_verbatim_set',
+      'schema field' => 'action',
+    ),
+    'amount' => array(
+      'label' => t("Transaction amount"),
+      'description' => t('Description of the action of the transaction.'),
+      'setter callback' => 'entity_property_verbatim_set',
+      'schema field' => 'amount',
+    ),
+    'amount_formatted' => array(
+      'label' => t('Transaction amount (formatted)'),
+      'description' => t('Amount formatted with the right currency'),
+      'computed' => TRUE,
+      'entity views field' => TRUE,
+      'getter callback' => '_commerce_account_balance_integer_to_amount',
+    ),
+    'type' => array(
+      'label' => t("Transaction type"),
+      'description' => t('Transaction type: deposit, purchase or redemption.'),
+      'options list' => '_commerce_account_balance_transaction_type_list',
+      'setter callback' => 'entity_property_verbatim_set',
+      'schema field' => 'type',
+    ),
+    'time' => array(
+      'type' => 'date',
+      'label' => t("Time"),
+      'description' => t('Time of the transaction'),
+      'setter callback' => 'entity_property_verbatim_set',
+      'schema field' => 'time',
+    ),
+    'uid' => array(
+      'type' => 'user',
+      'label' => t('User'),
+      'description' => t('The user this transaction belongs to'),
+      'setter callback' => 'entity_property_verbatim_set',
+      'schema field' => 'uid',
+    ),
+  );
+  $info['maritpal_account_balance_transaction']['properties'] = array_replace_recursive($info['maritpal_account_balance_transaction']['properties'], $properties);
+
+  // Add a computed property to the user that gives us the balance in Views.
+  $info['user']['properties']['account_balance'] = array(
+    'label' => t('Account balance'),
+    'description' => 'Account balance',
+    'computed' => TRUE,
+    'entity views field' => TRUE,
+    'getter callback' => '_maritpal_account_balance_get_balance',
+  );
 }
 
 /**
@@ -88,9 +211,10 @@ function maritpal_account_balance_commerce_line_item_type_info() {
  * Configuration callback for the deposit line item.
  */
 function maritpal_account_balance_line_item_configuration($line_item_type) {
-  $type = $line_item_type['type'];
+  $type = 'product';
   $field_name = "commerce_deposit_amount";
   $field = field_info_field($field_name);
+
   $instance = field_info_instance('commerce_line_item', $field_name, $type);
   if (empty($field)) {
     $field = array(
@@ -130,6 +254,88 @@ function maritpal_account_balance_line_item_configuration($line_item_type) {
     );
     field_create_instance($instance);
   }
+
+  $field_name = "commerce_deposit_currency_code";
+  $field = field_info_field($field_name);
+
+  $instance = field_info_instance('commerce_line_item', $field_name, $type);
+  if (empty($field)) {
+    $field = array(
+      'field_name' => $field_name,
+      'type' => 'text',
+      'cardinality' => 1,
+      'entity_types' => array('commerce_line_item'),
+      'translatable' => FALSE,
+    );
+    $field = field_create_field($field);
+  }
+
+  if (empty($instance)) {
+    $instance = array(
+      'field_name' => $field_name,
+      'entity_type' => 'commerce_line_item',
+      'bundle' => $type,
+      'label' => t('Deposit currency code'),
+      'required' => TRUE,
+      'widget' => array(
+        'type' => 'text_textfield',
+      ),
+      'settings' => array(
+      ),
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'type' => 'text',
+          'settings' => array(),
+        ),
+      ),
+    );
+    field_create_instance($instance);
+  }
+
+  // // Create the product reference field for the line item type.
+  // commerce_product_reference_create_instance('commerce_product', 'commerce_line_item', $type, t('Product'));
+
+  // // Look for or add a display path textfield to the product line item type.
+  // $field_name = 'commerce_display_path';
+  // commerce_activate_field($field_name);
+
+  // $field = field_info_field($field_name);
+  // $instance = field_info_instance('commerce_line_item', $field_name, $type);
+
+  // if (empty($field)) {
+  //   $field = array(
+  //     'field_name' => $field_name, 
+  //     'type' => 'text', 
+  //     'cardinality' => 1, 
+  //     'entity_types' => array('commerce_line_item'), 
+  //     'translatable' => FALSE, 
+  //     'locked' => TRUE,
+  //   );
+  //   $field = field_create_field($field);
+  // }
+
+  // if (empty($instance)) {
+  //   $instance = array(
+  //     'field_name' => $field_name, 
+  //     'entity_type' => 'commerce_line_item', 
+  //     'bundle' => $type, 
+  //     'label' => t('Display path'), 
+  //     'required' => TRUE, 
+  //     'settings' => array(), 
+  //     'widget' => array(
+  //       'type' => 'text_textfield', 
+  //       'weight' => 0,
+  //     ), 
+  //     'display' => array(
+  //       'display' => array(
+  //         'label' => 'hidden', 
+  //         'weight' => 0,
+  //       ),
+  //     ),
+  //   );
+  //   field_create_instance($instance);
+  // }
 }
 
 /**

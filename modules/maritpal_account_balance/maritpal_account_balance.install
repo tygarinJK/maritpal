@@ -75,3 +75,29 @@ function maritpal_account_balance_schema() {
   );
   return $schema;
 }
+
+/**
+ * Implements hook_field_schema().
+ */
+function commerce_account_balance_field_schema($field) {
+  if ($field['type'] == "commerce_purchase") {
+    return array(
+      'columns' => array(
+        'amount' => array(
+          'type' => 'int',
+          'not null' => TRUE,
+        ),
+        'rules_config' => array(
+          'type' => 'int',
+          'not null' => FALSE,
+        ),
+      ),
+      'foreign keys' => array(
+        'rules_config' => array(
+          'table' => 'rules_config',
+          'columns' => array('rules_config' => 'id'),
+        ),
+      ),
+    );
+  }
+}

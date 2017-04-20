@@ -9,6 +9,7 @@ dependencies[] = commerce_order
 dependencies[] = commerce_line_item
 dependencies[] = number
 dependencies[] = commerce_checkout
+dependencies[] = select_or_other
 dependencies[] = rules
 dependencies[] = views
 
