@@ -74,13 +74,13 @@ function maritpal_account_balance_deposit_to_account($user, $amount_decimal, $or
   $formatted_amount = commerce_currency_format($amount, $currency['code']);
 
   $transaction = entity_create('maritpal_account_balance_transaction', array(
-      'type' => 'deposit',
-      'action' => t('Deposit of @amount to your account', array('@amount' => $formatted_amount)),
-      'uid' => $uid,
-      'time' => REQUEST_TIME,
-      'amount' => $amount,
-      'order_id' => $order_id ? $order_id : NULL,
-    ));
+    'type' => 'deposit',
+    'action' => t('Deposit of @amount to your account', array('@amount' => $formatted_amount)),
+    'uid' => $uid,
+    'time' => REQUEST_TIME,
+    'amount' => $amount,
+    'order_id' => $order_id ? $order_id : NULL,
+  ));
 
   $transaction_wrapper = entity_metadata_wrapper('maritpal_account_balance_transaction', $transaction);
   $transaction_wrapper->save();
