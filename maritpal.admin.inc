@@ -428,7 +428,7 @@ function maritpal_admin_pricing_rules_form_submit($form, &$form_state) {
 
 	taxonomy_term_save($term);
 
-	$form_state['redirect'] = '/admin/maritpal/pricing-rules';
+	$form_state['redirect'] = 'admin/maritpal/settings/pricing-rules';
 	drupal_set_message(t('Pricing Rule was successfuly created'), 'status', FALSE);
 
 	// dpm($form_state);

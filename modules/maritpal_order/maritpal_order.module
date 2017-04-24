@@ -826,6 +826,33 @@ function maritpal_order_block_calendar_time_form_submit($form, &$form_state) {
 }
 
 /**
+ * Account Balance service order permission to approve direct or bid orders
+ */
+function maritpal_order_request_acc_balance_access($uid, $node) {
+  $account = user_load($uid);
+
+  if (!isset($account->field_serv_loc_city['und']) || 
+      !isset($node->field_request_serv_cat['und']) ||
+      !isset($node->field_date_and_time['und'][0]['value']) ||
+      !isset($node->field_date_and_time['und'][0]['value2'])) {
+        return FALSE;
+      }
+
+  $acc_balance = _commerce_account_balance_get_balance_raw($account);
+  $location = $account->field_serv_loc_city['und'][0]['tid'];
+  $category = $node->field_request_serv_cat['und'][0]['tid'];
+  $date = $node->field_date_and_time['und'][0];
+  $mail = $account->mail;
+
+  $price = maritpal_services_old_calculate_request_service_price($location, $category, $date, $mail);
+
+  dpm($node);
+  dpm($account);
+  dpm($acc_balance);
+  dpm(var_export($price));
+}
+
+/**
  * Service Order actions
  */
 function maritpal_order_actions($nid) {
@@ -833,8 +860,6 @@ function maritpal_order_actions($nid) {
   $url = request_uri();
   $url_q = parse_url($url, PHP_URL_QUERY);
   parse_str($url_q, $output);
-
-  // $terms = taxonomy_get_tree(4);
 
   $node = node_load($nid);
   $order_status = $node->field_request_status['und'][0]['tid'];
@@ -883,21 +908,10 @@ function maritpal_order_actions_submit($nid, $order_status, $node) {
     return;
   }
 
-  // $points = array(
-  //   'uid' => $user->uid,
-  //   'points' => -1,
-  //   'moderate' => FALSE,
-  //   'operation' => t('Service Request payment'),
-  // );
-
-  // userpoints_userpointsapi($points);
-
 	$order_type = $node->field_order_type['und'][0]['value'];
 
   if ($order_type == 1) maritpal_order_actions_change_status($nid, 11, $node);
 	if ($order_type == 2) maritpal_order_actions_change_status($nid, 10, $node);
-
-	// drupal_set_message(t('Order was succesfully submitted, @point point was deducted for the service request.', array('@point' => 'a')), 'status', TRUE);
 }
 
 function maritpal_order_actions_reject($nid, $order_status, $node) {

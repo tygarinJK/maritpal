@@ -6,3 +6,6 @@ package = Maritpal
 ;scripts[] = maritpal_order.js
 
 dependencies[] = maritpal
+dependencies[] = maritpal_account_balance
+dependencies[] = maritpal_services_old
+dependencies[] = commerce_account_balance
