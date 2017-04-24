@@ -1,0 +1,13 @@
+/* Transaction Form */
+#maritpal-account-balance-admin-transaction-form .form-item {
+	clear: both;
+}
+#maritpal-account-balance-admin-transaction-form .form-item-decimal-amount {
+	display: inline-block;
+  vertical-align: top;
+}
+#maritpal-account-balance-admin-transaction-form .form-item-currency-code {
+	display: inline-block;
+  vertical-align: top;
+  padding-top: 20px;
+}

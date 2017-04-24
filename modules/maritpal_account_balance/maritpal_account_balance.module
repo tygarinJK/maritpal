@@ -9,25 +9,25 @@
  */
 function maritpal_account_balance_permission() {
   return array(
-    'admin settings' => array(
-      'title' => t('Administrate settings'),
+    'maritpal balance admin settings' => array(
+      'title' => t('Administer settings'),
       'description' => t('Administrate account balance settings settings'),
     ),
-    'view own transactions' => array(
-      'title' => t('View own transactions'),
-      'description' => t('Acccess overview and details of transactions made'),
-    ),
-    'view all transactions' => array(
-      'title' => t('View any transactions'),
-    ),
-    'deposit to own account' => array(
-      'title' => t('Deposit to own account'),
-      'description' => t('Deposit money to own user account'),
-    ),
-    'deposit to any account' => array(
-      'title' => t('Deposit money to any user account'),
-      'description' => t('Deposit money to any user account'),
-    ),
+    // 'view own transactions' => array(
+    //   'title' => t('View own transactions'),
+    //   'description' => t('Acccess overview and details of transactions made'),
+    // ),
+    // 'view all transactions' => array(
+    //   'title' => t('View any transactions'),
+    // ),
+    // 'deposit to own account' => array(
+    //   'title' => t('Deposit to own account'),
+    //   'description' => t('Deposit money to own user account'),
+    // ),
+    // 'deposit to any account' => array(
+    //   'title' => t('Deposit money to any user account'),
+    //   'description' => t('Deposit money to any user account'),
+    // ),
   );
 }
 
@@ -37,99 +37,157 @@ function maritpal_account_balance_permission() {
 function maritpal_account_balance_menu() {
   $items = array();
 
-  $items['admin/config/people/account-balance'] = array(
-    'title' => t('Account balance settings'),
-    'description' => t(''),
-    'page callback' => 'maritpal_account_balance_admit_settings_form',
-    'access arguments' => array('admit settings'),
-    'file' => 'includes/maritpal_account_balance.admin.inc',
-    'type' => MENU_NORMAL_ITEM,
-  );
-  $items['user/%user/balance'] = array(
-    'title' => t('Account balance'),
-    'description' => t('Consult account balance and deposit money'),
-    'page callback' => 'maritpal_account_balance_review',
-    'page arguments' => array(1),
-    'access arguments' => array('deposit to own account'),
-    'file' => 'includes/maritpal_account_balance.pages.inc',
-    'type' => MENU_LOCAL_TASK,
-  );
-  $items['user/%user/balance/add'] = array(
-    'title' => t('Refill account balance'),
+  $items['admin/maritpal/settings/balance/add'] = array(
+    'title' => t('Add transaction'),
     'description' => t(''),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('maritpal_account_balance_refill_form', 1),
-    'access arguments' => array('deposit to own account'),
-    'file' => 'includes/maritpal_account_balance.pages.inc',
+    'page arguments' => array('maritpal_account_balance_admin_transaction_form'),
+    'access arguments' => array('maritpal balance admin settings'),
+    'file' => 'includes/maritpal_account_balance.admin.inc',
     'type' => MENU_LOCAL_ACTION,
   );
+
+  $items['admin/maritpal/settings/balance/autocomplete-user'] = array(
+    'title' => t(''),
+    'description' => t(''),
+    'page callback' => '_maritpal_account_balance_user_mail_autocomplete',
+    'access arguments' => array('maritpal balance admin settings'),
+    'type' => MENU_CALLBACK,
+  );
+
+  // $items['admin/maritpal/settings/balance/add-transaction'] = array(
+  //   'title' => t('Add new transaction'),
+  //   'description' => t(''),
+  //   'page callback' => 'drupal_get_form',
+  //   'page arguments' => array('maritpal_account_balance_admin_transaction_form'),
+  //   'access arguments' => array('maritpal settings'),
+  //   'file' => 'includes/maritpal_account_balance.admin.inc',
+  //   'type' => MENU_LOCAL_ACTION,
+  // );
+  
+  // $items['user/%user/balance'] = array(
+  //   'title' => t('Account balance'),
+  //   'description' => t('Consult account balance and deposit money'),
+  //   'page callback' => 'maritpal_account_balance_review',
+  //   'page arguments' => array(1),
+  //   'access arguments' => array('deposit to own account'),
+  //   'file' => 'includes/maritpal_account_balance.pages.inc',
+  //   'type' => MENU_LOCAL_TASK,
+  // );
+  // $items['user/%user/balance/add'] = array(
+  //   'title' => t('Refill account balance'),
+  //   'description' => t(''),
+  //   'page callback' => 'drupal_get_form',
+  //   'page arguments' => array('maritpal_account_balance_refill_form', 1),
+  //   'access arguments' => array('deposit to own account'),
+  //   'file' => 'includes/maritpal_account_balance.pages.inc',
+  //   'type' => MENU_LOCAL_ACTION,
+  // );
 
   return $items;
 }
 
 /**
+ * Implements hook_views_api().
+ */
+function maritpal_account_balance_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'maritpal_account_balance') . '/includes/views',
+  );
+}
+
+/**
  * Implements hook_commerce_line_item_type_info().
  */
-function maritpal_account_balance_commerce_line_item_type_info() {
-  $line_item_types = array();
+// function maritpal_account_balance_commerce_line_item_type_info() {
+//   $line_item_types = array();
 
-  $line_item_types['deposit'] = array(
-    'type' => 'deposit',
-    'name' => t('Deposit'),
-    'description' => t('Line item to deposit money to the account'),
-    'product' => FALSE,
-    'add_form_submit_value' => t('Add deposit form'),
-    'base' => 'maritpal_account_balance_line_item',
-  );
-  return $line_item_types;
-}
+//   $line_item_types['deposit'] = array(
+//     'type' => 'deposit',
+//     'name' => t('Deposit'),
+//     'description' => t('Line item to deposit money to the account'),
+//     'product' => FALSE,
+//     'add_form_submit_value' => t('Add deposit form'),
+//     'base' => 'maritpal_account_balance_line_item',
+//   );
+//   return $line_item_types;
+// }
 
 /**
  * Configuration callback for the deposit line item.
  */
-function maritpal_account_balance_line_item_configuration($line_item_type) {
-  $type = $line_item_type['type'];
-  $field_name = "commerce_deposit_amount";
-  $field = field_info_field($field_name);
-  $instance = field_info_instance('commerce_line_item', $field_name, $type);
-  if (empty($field)) {
-    $field = array(
-      'field_name' => $field_name,
-      'type' => 'number_float',
-      'cardinality' => 1,
-      'entity_types' => array('commerce_line_item'),
-      'translatable' => FALSE,
-    );
-    $field = field_create_field($field);
-  }
+// function maritpal_account_balance_line_item_configuration($line_item_type) {
+//   $type = $line_item_type['type'];
+//   $field_name = "commerce_deposit_amount";
+//   $field = field_info_field($field_name);
+//   $instance = field_info_instance('commerce_line_item', $field_name, $type);
+//   if (empty($field)) {
+//     $field = array(
+//       'field_name' => $field_name,
+//       'type' => 'number_float',
+//       'cardinality' => 1,
+//       'entity_types' => array('commerce_line_item'),
+//       'translatable' => FALSE,
+//     );
+//     $field = field_create_field($field);
+//   }
 
-  if (empty($instance)) {
-    $instance = array(
-      'field_name' => $field_name,
-      'entity_type' => 'commerce_line_item',
-      'bundle' => $type,
-      'label' => t('Deposit amount'),
-      'required' => TRUE,
-      'widget' => array(
-        'type' => 'text_textfield',
-      ),
-      'settings' => array(
-      ),
-      'display' => array(
-        'default' => array(
-          'label' => 'hidden',
-          'type' => 'number_decimal',
-          'settings' => array(
-            'thousand_separator' => '',
-            'decimal_separator' => '.',
-            'scale' => 2,
-            'prefix_suffix' => TRUE,
-          ),
-        ),
-      ),
-    );
-    field_create_instance($instance);
+//   if (empty($instance)) {
+//     $instance = array(
+//       'field_name' => $field_name,
+//       'entity_type' => 'commerce_line_item',
+//       'bundle' => $type,
+//       'label' => t('Deposit amount'),
+//       'required' => TRUE,
+//       'widget' => array(
+//         'type' => 'text_textfield',
+//       ),
+//       'settings' => array(
+//       ),
+//       'display' => array(
+//         'default' => array(
+//           'label' => 'hidden',
+//           'type' => 'number_decimal',
+//           'settings' => array(
+//             'thousand_separator' => '',
+//             'decimal_separator' => '.',
+//             'scale' => 2,
+//             'prefix_suffix' => TRUE,
+//           ),
+//         ),
+//       ),
+//     );
+//     field_create_instance($instance);
+//   }
+// }
+
+/**
+ * Autocomplete callback
+ *
+ * @see maritpal_account_balance_menu()
+ *
+ * @param str #str
+ *  Match string
+ *
+ * @return array
+ *  User emails array
+ */
+function _maritpal_account_balance_user_mail_autocomplete($str) {
+  $matches = array();
+
+  $result = db_select('users', 'u')
+    ->fields('u', array('mail'))
+    ->condition('u.mail', '%' . db_like($str) . '%', 'LIKE')
+    ->range(0, 10)
+    ->execute();
+
+  foreach ($result as $row) {
+    $matches[$row->mail] = check_plain($row->mail);
   }
+  
+  // return for JS
+  return drupal_json_output($matches);
 }
 
 /**

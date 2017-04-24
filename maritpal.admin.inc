@@ -17,6 +17,21 @@ function maritpal_admin_form($form, $form_state) {
  */
 function maritpal_admin_pricing_settings_form($form, &$form_state) {
 
+	// Service Provider comission
+	$form['sp_comissions'] = array(
+		'#type' => 'fieldset',
+		'#title' => t('Service provider comissions'),
+		'#collepsible' => FALSE,
+		'#collapsed' => FALSE,
+	);
+	$form['sp_comissions']['maritpal_admin_sp_request_comission'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Service provider request comission'),
+		'#default_value' => variable_get('maritpal_admin_sp_request_comission', 5),
+		'#required' => TRUE,
+		'#suffix' => '%'
+	);
+
 	// Taxes & Rates
 	$form['rates'] = array(
 		'#type' => 'fieldset',

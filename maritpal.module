@@ -28,15 +28,15 @@ function maritpal_permission() {
  * Implements hook_menu().
  */
 function maritpal_menu() {
-  $items['user/%user/balance/deposit-cash'] = array(
-    'title' => t('Account Balance deposit cash'),
-    'description' => t(''),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('maritpal_commerce_account_balance_deposit_cash', 1),
-    'access arguments' => array('deposit to own account'),
-    'file' => 'maritpal.pages.inc',
-    'type' => MENU_LOCAL_TASK,
-  );
+  // $items['user/%user/balance/deposit-cash'] = array(
+  //   'title' => t('Account Balance deposit cash'),
+  //   'description' => t(''),
+  //   'page callback' => 'drupal_get_form',
+  //   'page arguments' => array('maritpal_commerce_account_balance_deposit_cash', 1),
+  //   'access arguments' => array('deposit to own account'),
+  //   'file' => 'maritpal.pages.inc',
+  //   'type' => MENU_LOCAL_TASK,
+  // );
 
   $items['admin/maritpal/settings'] = array(
     'title' => t('Maritpal Settings'),
@@ -57,7 +57,7 @@ function maritpal_menu() {
     'access arguments' => array('maritpal settings'),
     'file' => 'maritpal.admin.inc',
     'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => -10,
+    'weight' => -50,
   );
 
   $items['admin/maritpal/settings/pricing'] = array(
@@ -69,7 +69,7 @@ function maritpal_menu() {
     'access arguments' => array('maritpal settings'),
     'file' => 'maritpal.admin.inc',
     'type' => MENU_LOCAL_TASK,
-    'weight' => -9,
+    // 'weight' => -9,
   );
 
   $items['admin/maritpal/reports'] = array(

@@ -10,32 +10,31 @@
 function maritpal_account_balance_rules_action_info() {
   // $currency = commerce_currency_load();
 
-  // return array(
-  //   'commerce_account_balance_deposit_to_account' => array(
-  //     'label' => t("Deposit money to a user's account"),
-  //     'parameter' => array(
-  //       'user' => array(
-  //         'label' => t('User'),
-  //         'type' => 'user',
-  //         'optional' => FALSE,
-  //         'allow null' => FALSE,
-  //       ),
-  //       'amount' => array(
-  //         'label' => t('Amount in !currency', array('!currency' => $currency['symbol'])),
-  //         'type' => 'decimal',
-  //         'allow null' => TRUE,
-  //         'optional' => TRUE,
-  //         'description' => 'A decimal amount of money to add to the balance',
-  //       ),
-  //       'order_id' => array(
-  //         'label' => t('Order ID'),
-  //         'type' => 'integer',
-  //         'allow null' => TRUE,
-  //         'optional' => TRUE,
-  //         'description' => 'The order ID this transaction belongs to (optional)',
-  //       ),
-  //     ),
-  //     'group' => t('Commerce Account Balance'),
-  //   ),
-  // );
+  return array(
+    'maritpal_account_balance_load_account_balance' => array(
+      'label' => t("Load account balance"),
+      'parameter' => array(
+        'user' => array(
+          'label' => t('User'),
+          'type' => 'user',
+          'optional' => FALSE,
+          'allow null' => FALSE,
+        ),
+      ),
+      'provides' => array(
+        'balance' => array(
+          'label' => t('Account Balance'),
+          'type' => '*',
+        ),
+      ),
+      'group' => t('Commerce Account Balance'),
+    ),
+  );
+}
+
+/**
+ * Return user account balance
+ */
+function maritpal_account_balance_load_account_balance($account) {
+  return _commerce_account_balance_get_balance_raw($account);
 }

@@ -2,7 +2,8 @@
 #maritpal-admin-pricing-settings-form .form-item {
 	clear: both;
 }
-#maritpal-admin-pricing-settings-form #edit-taxes-container .form-item {
+#maritpal-admin-pricing-settings-form #edit-taxes-container .form-item,
+#maritpal-admin-pricing-settings-form #edit-sp-comissions .form-item {
 	display: inline-block;
 }
 

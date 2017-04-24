@@ -825,7 +825,9 @@ function maritpal_order_block_calendar_time_form_submit($form, &$form_state) {
   drupal_set_message(t('Time was succesfully blocked'), 'status', FALSE);
 }
 
-
+/**
+ * Service Order actions
+ */
 function maritpal_order_actions($nid) {
   
   $url = request_uri();
