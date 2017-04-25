@@ -234,6 +234,18 @@ function maritpal_services_old_services_resources_alter(&$resources, &$endpoint)
     ),
   );
 
+  $resources['meritpal'] = array(
+    'actions' => array(
+      'settings' => array(
+        'help' => 'List all Maritpal settings',
+        'callback' => 'maritpal_services_old_settings_endpoint',
+        'access callback' => '_commerce_resource_access',
+        'access arguments' => array('view'),
+        'access arguments append' => TRUE,
+      ),
+    ),
+  );
+
   return $resources;
 }
 
@@ -724,6 +736,7 @@ function maritpal_services_old_calculate_request_service_price($location, $categ
   $price['taxes']['surcharge'] = round(($price['amount'] / 100) * $surcharge_tax, 0);
 
   // additional taxes
+  $price['taxes']['additional']['sum'] = 0;
   $addditional_taxes = variable_get('maritpal_additional_taxes', array());
   foreach ($addditional_taxes as $i => $tax) {
     $price['taxes']['additional'][] = array(
@@ -744,7 +757,7 @@ function maritpal_services_old_calculate_request_service_price($location, $categ
           'base_price' => intval($price['amount']),
           'admin_tax' => intval($price['taxes']['admin']),
           'transfer_tax' => intval($price['taxes']['transfer']),
-          'bank_fee' => intval($price['taxes']['bank_fee']),
+          // 'bank_fee' => intval($price['taxes']['bank_fee']),
           'surcharge' => intval($price['taxes']['surcharge']),
           'additional_taxes' => intval($price['taxes']['additional']['sum']),
           'discount' => intval($price['discount']),
@@ -772,7 +785,7 @@ function maritpal_services_old_calculate_request_service_price($location, $categ
  */
 function maritpal_services_old_get_pricing_rule($location, $category, $date, $mail = NULL) {
   $location_reverse = array_reverse($location);
-
+  
   // -- fetch price rules terms
   $query = new EntityFieldQuery();
   $q = $query->entityCondition('entity_type', 'taxonomy_term')
@@ -785,7 +798,7 @@ function maritpal_services_old_get_pricing_rule($location, $category, $date, $ma
   if (!is_null($mail)) {
     $qmail = $query->fieldCondition('field_serv_sp_mail', 'email', $mail, '=');
     $result = $qmail->execute();
-
+    
     // if result exist
     if (isset($result['taxonomy_term'])) {
       $tids = array_keys($result['taxonomy_term']);
@@ -870,4 +883,15 @@ function maritpal_services_old_privatemsg_mark_as_read($thread_id, $uid) {
     ->execute();
     
   return is_numeric($result) ? TRUE : FALSE;
+}
+
+/**
+ * Return Maritpal settings
+ */
+function maritpal_services_old_settings_endpoint() {
+  return array(
+    'settings' => array(
+      'meritpal_service_provider_comission' => variable_get('maritpal_admin_sp_request_comission', 5) .'%',
+    ),
+  );
 }

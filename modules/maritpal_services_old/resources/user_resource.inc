@@ -67,8 +67,10 @@ function __user_resource_login($username, $password) {
       if (module_exists('userpoints'))
         $account->userpoints = userpoints_get_current_points($user->uid);
 
-      if (module_exists('commerce_account_balance'))
-        $account->balance = _commerce_account_balance_get_balance($user);
+      if (module_exists('commerce_account_balance')) {
+        $balance_raw = _commerce_account_balance_get_balance_raw($user);
+        $account->balance = $balance_raw['amount'] .' '. $balance_raw['currency_code'];
+      }
 
       if (module_exists('push_notifications')) {
         $tokens = push_notification_get_user_tokens($user->uid);
