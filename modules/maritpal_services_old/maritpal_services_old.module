@@ -620,7 +620,7 @@ function maritpal_services_old_users_privatemsg($account) {
         'message_count' => $thread['message_count'],
         'messages' => $messages,
         'from' => $thread['from'],
-        'start' => $thread['start'],
+        'start' => isset($thread['start']) ? $thread['start'] : 0,
         'subject-original' => $thread['subject'],
         'subject' => $thread['subject']
       );

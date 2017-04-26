@@ -20,6 +20,21 @@ function maritpal_order_rules_action_info() {
       ),
       'provides' => array(),
     ),
+		'maritpal_order_account_balance_pricing_calculation' => array(
+      'label' => t('Calculating Balance sell Price'),
+      'group' => t('Commerce Account Balance'),
+      'parameter' => array(
+        'user' => array(
+          'type' => 'user',
+          'label' => t('user'),
+        ),
+        'commerce_line_item' => array(
+          'type' => 'commerce_line_item',
+          'label' => t('commerce-line-item'),
+        ),
+      ),
+      'provides' => array(),
+    ),
   );
 }
 
@@ -73,7 +88,7 @@ function maritpal_order_service_request_pricing_calculation($node, $commerce_lin
 	}
 
 	// If no pricing rule find use default
-	if (!$term) $term = taxonomy_term_load(1988);
+	if (!isset($term)) $term = taxonomy_term_load(1988);
 
 	// -- price parameters
 	$params = array(
@@ -178,6 +193,95 @@ function maritpal_order_service_request_pricing_calculation($node, $commerce_lin
 
 	// dpm($commerce_line_item);
 	// commerce_line_item_rebase_unit_price($line_item_wrapper->value());
+
+	commerce_line_item_save($commerce_line_item);
+
+	/** Reset DC line-items cache */
+	entity_get_controller('commerce_line_item')->resetCache(array($commerce_line_item->line_item_id));
+}
+
+/**
+ * Callback function to maritpal_order_rules_action_info
+ * 
+ * @see maritpal_order_rules_action_info()
+ *
+ * @param object $user
+ * 	User frofile
+ * @param object $commerce_line_item
+ * 	Commerce Line Item with service order reference
+ */
+function maritpal_order_account_balance_pricing_calculation($user, $commerce_line_item) {
+	dpm($commerce_line_item);
+
+	// $commerce_line_item->commerce_unit_price['und'][0]['amount'] = 300;
+	// $commerce_line_item->commerce_unit_price['und'][0]['currency_code'] = 'EUR';
+	// $commerce_line_item->commerce_unit_price['und'][0]['data']['components'][0]['price']['amount'] = 300;
+	// $commerce_line_item->commerce_unit_price['und'][0]['data']['components'][0]['price']['currency_code'] = 'EUR';
+	$line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $commerce_line_item);
+
+  // -- Line item total price
+	$sum = 300;
+	$line_item_wrapper->commerce_unit_price->amount = $sum;
+	$line_item_wrapper->commerce_unit_price->currency_code = 'EUR';
+	
+	/**
+	 * Base price component
+	 */
+	$line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
+		$line_item_wrapper->commerce_unit_price->value(),
+		'base_price',
+		array(
+			'amount' => $sum,
+			'currency_code' => 'EUR',
+			'data' => array(),
+		),
+		TRUE
+	);	
+
+	// /**
+	//  * Admin rate price component
+	//  */
+	// $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
+	// 	$line_item_wrapper->commerce_unit_price->value(),
+	// 	'admin_rate',
+	// 	array(
+	// 		'amount' => $price['taxes']['admin'],
+	// 		'currency_code' => $price['currency_code'],
+	// 		'data' => array(),
+	// 	),
+	// 	FALSE
+	// );
+
+	// /**
+	//  * Transfer rate price component
+	//  */
+	// $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
+	// 	$line_item_wrapper->commerce_unit_price->value(),
+	// 	'transfer_rate',
+	// 	array(
+	// 		'amount' => $price['taxes']['transfer'],
+	// 		'currency_code' => $price['currency_code'],
+	// 		'data' => array(),
+	// 	),
+	// 	FALSE
+	// );
+
+	// /**
+	//  * Bank fee price component
+	//  */
+	// $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
+	// 	$line_item_wrapper->commerce_unit_price->value(),
+	// 	'bank_transfer_fee',
+	// 	array(
+	// 		'amount' => $price['taxes']['bank_fee'],
+	// 		'currency_code' => $price['currency_code'],
+	// 		'data' => array(),
+	// 	),
+	// 	FALSE
+	// );
+
+	// dpm($commerce_line_item);
+	commerce_line_item_rebase_unit_price($line_item_wrapper->value());
 
 	/** Invoke UI action set Add Administrative pricing taxes */
 	// $result = rules_invoke_component('rules_add_admin_rates', $commerce_line_item);

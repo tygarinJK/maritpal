@@ -144,3 +144,10 @@ function maritpal_account_balance_refill_form_submit($form, &$form_state) {
 
   // dpm($result);
 }
+
+/**
+ *
+ */
+function maritpal_account_balance_deposit_page() {
+  return 'TODO: show balance product';
+}

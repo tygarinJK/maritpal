@@ -840,8 +840,7 @@ function maritpal_order_request_acc_balance_access($uid, $node) {
   );
 
   $fee_amount = maritpal_account_balance_calculate_service_request_fee($account, $node);
-  if ($data['acc_balance']['amount'] < $fee_amount) return FALSE;
-  // dpm(var_export($fee_amount));
+  if ($fee_amount === FALSE || $data['acc_balance']['amount'] < $fee_amount) return FALSE;
 
   return TRUE;
 }
@@ -1037,11 +1036,15 @@ function maritpal_order_form_comment_node_request_form_alter(&$form, &$form_stat
 
   if (user_has_role(4, $user)) {
     if (!maritpal_order_request_acc_balance_access($user->uid, $form['#node'])) {
+      $form['field_comment_amount']['#access'] = FALSE;
+      $form['comment_body']['#access'] = FALSE;
       $form['actions']['submit'] = array(
         '#markup' => t('You don`t have enough balance or service rate is not maintained.'),
       ); 
     }
     if (count($comments) > 0) {
+      $form['field_comment_amount']['#access'] = FALSE;
+      $form['comment_body']['#access'] = FALSE;
       $form['actions']['submit'] = array(
         '#markup' => t('You allready place the bid and can not bid more'),
       ); 

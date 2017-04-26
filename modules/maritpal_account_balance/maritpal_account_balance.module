@@ -44,6 +44,24 @@ function maritpal_account_balance_menu() {
 }
 
 /**
+ * Implement hook_menu_alter()
+ */
+function maritpal_account_balance_menu_alter(&$items) {
+  // $items['user/%user/balance'] = array(
+  //   'title' => 'My account balance',
+  //   'description' => 'Consult account balance and deposit money',
+  //   'page callback' => 'maritpal_account_balance_deposit_page',
+  //   'page arguments' => array(),
+  //   'access arguments' => array('deposit to own account'),
+  //   'module' => 'maritpal_account_balance',
+  //   'file' => 'includes/maritpal_account_balance.pages',
+  //   'type' => MENU_LOCAL_TASK,
+  // );
+
+  return $items;
+}
+
+/**
  * Implements hook_views_api().
  */
 function maritpal_account_balance_views_api() {

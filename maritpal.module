@@ -492,6 +492,39 @@ function maritpal_calculate_service_order_price($location, $category, $start_dat
 // }
 
 /**
+ * Implements hook_commerce_currency_info_alter().
+ */
+function maritpal_commerce_currency_info_alter(&$currencies) {
+  foreach ($currencies as $key => $currency) {
+    $currencies[$key]['decimals'] = 0;
+    // $currency['format_callback'] = 'maritpal_price_decimals_formatter_currency_format';
+  }
+}
+
+/**
+ * Currency format callback.
+ *
+ * @see maritpal_commerce_currency_info_alter()
+ */
+// function maritpal_price_decimals_formatter_currency_format($amount, $currency, $object) {
+//   $round_amount = commerce_currency_round(abs($amount), $currency);
+//   $price = number_format($round_amount, 0);
+ 
+//   $replacements = array(
+//     '@code_before' => $currency['code_placement'] == 'before' ? $currency['code'] : '',
+//     '@symbol_before' => $currency['symbol_placement'] == 'before' ? $currency['symbol'] : '',
+//     '@price' => $price,
+//     '@symbol_after' => $currency['symbol_placement'] == 'after' ? $currency['symbol'] : '',
+//     '@code_after' => $currency['code_placement'] == 'after' ? $currency['code'] : '',
+//     '@negative' => $amount < 0 ? '-' : '',
+//     '@symbol_spacer' => $currency['symbol_spacer'],
+//     '@code_spacer' => $currency['code_spacer'],
+//   );
+ 
+//   return trim(t('@code_before@code_spacer@negative@symbol_before@price@symbol_spacer@symbol_after@code_spacer@code_after', $replacements));
+// }
+
+/**
  * Check if thread has tag
  *
  * @param number $tread_id
