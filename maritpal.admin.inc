@@ -228,13 +228,14 @@ function maritpal_admin_pricing_rules_form($form, &$form_state, $term = NULL) {
         'vid' => 14,
         'separator' => '|',
       ),
-      'save_lineage'    => 1,
-      'enforce_deepest' => 1,
+      'save_lineage'    => 0,
+      'enforce_deepest' => 0,
       'resizable'       => 0,
       'level_labels' => array(
         'status' => 1,
         'labels' => array(
-          0 => t(' - Select location - '),
+          0 => t(' - Select country - '),
+          1 => t(' - Select city - '),
         ),
       ),
       'dropbox' => array(
@@ -286,12 +287,15 @@ function maritpal_admin_pricing_rules_form($form, &$form_state, $term = NULL) {
         'separator' => '|',
       ),
       'save_lineage'    => 0,
-      'enforce_deepest' => 1,
+      'enforce_deepest' => 0,
       'resizable'       => 0,
       'level_labels' => array(
         'status' => 1,
         'labels' => array(
-          0 => t(' - Select category - '),
+          0 => t(' - Select MDC 1 - '),
+          1 => t(' - Select MDC 2 - '),
+          2 => t(' - Select MDC 3 - '),
+          3 => t(' - Select MDC 4 - '),
         ),
       ),
       'dropbox' => array(
@@ -415,8 +419,8 @@ function maritpal_admin_pricing_rules_form_submit($form, &$form_state) {
 	// $term->name = !empty($form_state['values']['admin_title']) ? $form_state['values']['admin_title'] : '__';
 	$term->uid = $user->uid;
 	$term->vid = 23;
-	$term->field_serv_loaction['und'][0]['tid'] = $form_state['values']['request_serv_loc_hs'][1];
-	$term->field_serv_cat['und'][0]['tid'] = $form_state['values']['request_serv_cat_hs'][0];
+	$term->field_serv_loaction['und'][0]['tid'] = end($form_state['values']['request_serv_loc_hs']);
+	$term->field_serv_cat['und'][0]['tid'] = end($form_state['values']['request_serv_cat_hs']);
 	$term->field_serv_sp_mail['und'][0]['email'] = $form_state['values']['provider_mail'];
 
 	$term->field_serv_price_ph['und'][0]['amount'] = $form_state['values']['rate'];
@@ -426,12 +430,13 @@ function maritpal_admin_pricing_rules_form_submit($form, &$form_state) {
 	$term->field_serv_rate_currency['und'][0]['currency_code'] = $form_state['values']['currency'];
 	$term->field_serv_rate_dur['und'][0]['value'] = $form_state['values']['per'];
 
-	taxonomy_term_save($term);
+	// taxonomy_term_save($term);
 
-	$form_state['redirect'] = 'admin/maritpal/settings/pricing-rules';
-	drupal_set_message(t('Pricing Rule was successfuly created'), 'status', FALSE);
+	// $form_state['redirect'] = 'admin/maritpal/settings/pricing-rules';
+	// drupal_set_message(t('Pricing Rule was successfuly created'), 'status', FALSE);
 
-	// dpm($form_state);
+	dpm($term);
+	dpm($form_state);
 }
 
 /**

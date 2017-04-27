@@ -674,40 +674,6 @@ function maritpal_reports_mdc_figures_by_orders_form($form, $form_state) {
 		$categories = maritpal_get_mdc_category_tree($mdc[0]);
 		$location = maritpal_get_mdc_location_tree($mdc[1]);
 
-
-
-	// 	// get regular service order of mdc 
-		// $query = new EntityFieldQuery();
-		// $reg_orders = $query->entityCondition('entity_type', 'node')
-		// 	->entityCondition('bundle', 'request')
-		// 	->fieldCondition('field_order_type', 'value', 1, '=')
-		// 	->fieldCondition('field_serv_loc_city', 'tid', $mdc[1], '=')
-		// 	->fieldCondition('field_request_serv_cat', 'tid', $mdc[0], '=')
-		// 	->addMetaData('account', user_load(4));
-
-	// 	if (!empty($q_params['period_from']))
-	// 		$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
-	// 	if (!empty($q_params['period_to']))
-	// 		$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
-	
-		// $reg_orders = $query->execute();
-
-	// 	// get bid service order of mdc 
-	// 	$query = new EntityFieldQuery();
-	// 	$bid_orders = $query->entityCondition('entity_type', 'node')
-	// 		->entityCondition('bundle', 'request')
-	// 		->fieldCondition('field_order_type', 'value', 2, '=')
-	// 		->fieldCondition('field_serv_loc_city', 'tid', $mdc[1], '=')
-	// 		->fieldCondition('field_request_serv_cat', 'tid', $mdc[0], '=')
-	// 		->addMetaData('account', user_load(4));
-
-	// 	if (!empty($q_params['period_from']))
-	// 		$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
-	// 	if (!empty($q_params['period_to']))
-	// 		$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
-	
-	// 	$bid_orders = $query->execute();
-
 		$rows[] = array(
 			'mdc_0' => $categories['mdc_0'], 
 			'mdc_1' => $categories['mdc_1'], 

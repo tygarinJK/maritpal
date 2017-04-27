@@ -172,7 +172,7 @@ function maritpal_menu_alter(&$items) {
   $items['messages/new']['access callback'] = 'user_access';
   $items['messages/new']['access arguments'] = array('administer privatemsg settings');
 
-  dpm($items);
+  // dpm($items);
   return $items;
 }
 
