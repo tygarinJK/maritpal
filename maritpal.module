@@ -75,9 +75,7 @@ function maritpal_menu() {
   $items['admin/maritpal/reports'] = array(
     'title' => t('Maritpal Reports'),
     'description' => t(''),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('maritpal_reports_mdc_figures_by_providers_and_region_form'),
-    // 'page callback' => 'maritpal_reports_mdc_figures_by_providers_and_region_form',
+    'page callback' => 'maritpal_reports_intro_page',
     'menu_name' => 'management',
     'access arguments' => array('maritpal settings'),
     'file' => 'maritpal.pages.inc',
@@ -90,7 +88,6 @@ function maritpal_menu() {
     'description' => t(''),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('maritpal_reports_mdc_figures_by_providers_and_region_form'),
-    // 'page callback' => 'maritpal_reports_mdc_figures_by_providers_and_region_form',
     'access arguments' => array('maritpal settings'),
     'file' => 'maritpal.pages.inc',
     'type' => MENU_LOCAL_TASK,
@@ -174,7 +171,30 @@ function maritpal_menu() {
 function maritpal_menu_alter(&$items) {
   $items['messages/new']['access callback'] = 'user_access';
   $items['messages/new']['access arguments'] = array('administer privatemsg settings');
+
+  dpm($items);
   return $items;
+}
+
+/**
+ * Get the children of a menu item in a given menu.
+ *
+ * @param string $title
+ *   The title of the parent menu item.
+ * @param string $menu
+ *   The internal menu name.
+ * 
+ * @return array
+ *   The children of the given parent. 
+ */
+function maritpal_submenu_tree_all_data($title, $menu = 'primary-links') {
+  $tree = menu_tree_all_data($menu);
+  foreach ($tree as $branch) {
+    if ($branch['link']['title'] == $title) {
+      return $branch['below'];
+    }
+  }
+  return array();
 }
 
 /**

@@ -62,7 +62,14 @@ function maritpal_pricing_rules_review() {
 
 	return $output;
 }
+function maritpal_reports_intro_page() {
+	// $menu = maritpal_submenu_tree_all_data($title, '');
+	return 'TODO: Intro page';
+}
 
+/**
+ * Report | MDC figures by providers and region
+ */
 function maritpal_reports_mdc_figures_by_providers_and_region_form($form, &$form_state) {
 	// Path query
 	$q_params = drupal_get_query_parameters();

@@ -70,7 +70,7 @@ function maritpal_account_balance_refill_form($form, &$form_state, $account) {
 
   // $result = maritpal_account_balance_transaction_get($account);
   // dpm($result);
-  dpm($form);
+  // dpm($form);
 
   return $form;
 }
@@ -81,73 +81,75 @@ function maritpal_account_balance_refill_form_validate($form, &$form_state) {
 }
 
 function maritpal_account_balance_refill_form_submit($form, &$form_state) {
-  $account = $form_state['user'];
-  $type = 'deposit';
-  $amount_decimal = $form_state['values']['balance_amount'];
-  $currency_code = $form_state['values']['balance_currency'];
+  // $account = $form_state['user'];
+  // $type = 'deposit';
+  // $amount_decimal = $form_state['values']['balance_amount'];
+  // $currency_code = $form_state['values']['balance_currency'];
 
-  $line_item = $form_state['line_item'];
-  $order = $form_state['order'];
-
-
-  // field_attach_submit('commerce_line_item', $line_item, $form, $form_state);
-
-  // Use the official hook to recalculate the unit price.
-
-  // $line_item->commerce_unit_price['und'][0]['data']['components'][0]['price'] = array(
-  //   'amount' => $amount_decimal,
-  //   'currency_code' => $currency,
-  //   'data' => array(),
-  // );
-
-  $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
-  $line_item_wrapper->commerce_unit_price->amount = $amount_decimal;
-  $line_item_wrapper->commerce_unit_price->currency_code = $currency_code;
-
-	// $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
-	// 	$line_item_wrapper->commerce_unit_price->value(),
-	// 	'base_price',
-	// 	array(
-	// 		'amount' => $amount_decimal,
-	// 		'currency_code' => $currency_code,
-	// 		'data' => array(),
-	// 	),
-	// 	TRUE
-	// );
-
-  commerce_line_item_rebase_unit_price($line_item_wrapper->value());
-
-  commerce_line_item_save($line_item);
-
-  /** Reset DC line-items cache */
-	entity_get_controller('commerce_line_item')->resetCache(array($line_item->line_item_id));
-
-  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
-
-  $order_wrapper->uid = $account->uid;
-  $order_wrapper->mail = $account->mail;
-  $order_wrapper->status = 'checkout_checkout';
-  $order_wrapper->created = REQUEST_TIME;
-  $order_wrapper->changed = REQUEST_TIME;
-  $order_wrapper->commerce_line_items = array($line_item_wrapper->line_item_id->value());
-
-  commerce_order_calculate_total($order);
-  $order_wrapper->save();
-
-  $form_state['redirect'] = 'checkout/' . $order_wrapper->order_id->value();
+  // $line_item = $form_state['line_item'];
+  // $order = $form_state['order'];
 
 
-  dpm($line_item);
-  dpm($order);
-  dpm($form_state);
-  // $result = maritpal_account_balance_transaction_new($account, $type, $amount_decimal, $currency);
+  // // field_attach_submit('commerce_line_item', $line_item, $form, $form_state);
 
-  // dpm($result);
+  // // Use the official hook to recalculate the unit price.
+
+  // // $line_item->commerce_unit_price['und'][0]['data']['components'][0]['price'] = array(
+  // //   'amount' => $amount_decimal,
+  // //   'currency_code' => $currency,
+  // //   'data' => array(),
+  // // );
+
+  // $line_item_wrapper = entity_metadata_wrapper('commerce_line_item', $line_item);
+  // $line_item_wrapper->commerce_unit_price->amount = $amount_decimal;
+  // $line_item_wrapper->commerce_unit_price->currency_code = $currency_code;
+
+	// // $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
+	// // 	$line_item_wrapper->commerce_unit_price->value(),
+	// // 	'base_price',
+	// // 	array(
+	// // 		'amount' => $amount_decimal,
+	// // 		'currency_code' => $currency_code,
+	// // 		'data' => array(),
+	// // 	),
+	// // 	TRUE
+	// // );
+
+  // commerce_line_item_rebase_unit_price($line_item_wrapper->value());
+
+  // commerce_line_item_save($line_item);
+
+  // /** Reset DC line-items cache */
+	// entity_get_controller('commerce_line_item')->resetCache(array($line_item->line_item_id));
+
+  // $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
+
+  // $order_wrapper->uid = $account->uid;
+  // $order_wrapper->mail = $account->mail;
+  // $order_wrapper->status = 'checkout_checkout';
+  // $order_wrapper->created = REQUEST_TIME;
+  // $order_wrapper->changed = REQUEST_TIME;
+  // $order_wrapper->commerce_line_items = array($line_item_wrapper->line_item_id->value());
+
+  // commerce_order_calculate_total($order);
+  // $order_wrapper->save();
+
+  // $form_state['redirect'] = 'checkout/' . $order_wrapper->order_id->value();
+
+
+  // dpm($line_item);
+  // dpm($order);
+  // dpm($form_state);
+  // // $result = maritpal_account_balance_transaction_new($account, $type, $amount_decimal, $currency);
+
+  // // dpm($result);
 }
 
 /**
+ * Account balance deposit page
  *
+ * @see maritpal_account_balance_menu_alter()
  */
 function maritpal_account_balance_deposit_page() {
-  return 'TODO: show balance product';
+  return '';
 }
