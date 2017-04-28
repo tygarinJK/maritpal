@@ -430,13 +430,13 @@ function maritpal_admin_pricing_rules_form_submit($form, &$form_state) {
 	$term->field_serv_rate_currency['und'][0]['currency_code'] = $form_state['values']['currency'];
 	$term->field_serv_rate_dur['und'][0]['value'] = $form_state['values']['per'];
 
-	// taxonomy_term_save($term);
+	taxonomy_term_save($term);
 
-	// $form_state['redirect'] = 'admin/maritpal/settings/pricing-rules';
-	// drupal_set_message(t('Pricing Rule was successfuly created'), 'status', FALSE);
+	$form_state['redirect'] = 'admin/maritpal/settings/pricing-rules';
+	drupal_set_message(t('Pricing Rule was successfuly created'), 'status', FALSE);
 
-	dpm($term);
-	dpm($form_state);
+	// dpm($term);
+	// dpm($form_state);
 }
 
 /**

@@ -66,6 +66,7 @@ function __service_request_node_update($nid, $request) {
 
 /**
  * Callback for Requesting Service Price.
+ *  (depricated) @see __service_request_rate_calculate()
  *
  * @param obj $data
  * 	Incomming data
@@ -84,5 +85,28 @@ function __service_request_price_calculate($data) {
   $mail = $data['mail'];
 
   $price = maritpal_services_old_calculate_request_service_price($location, $category, $date, $mail);
+  return !$price ? (object)array('data' => (object)array()) : $price;
+}
+
+/**
+ * NEW | Callback for Requesting Service Price.
+ *
+ * @param obj $data
+ * 	Incomming data
+ *
+ * @return obj
+ *	Price data object
+ */
+function __service_request_rate_calculate($data) {
+	$data = _services_arg_value($data, 'data');
+
+	if (!isset($data['location']) || !isset($data['category']) || !isset($data['date'])) return services_error('Invalid format data', 404);
+
+  $location = $data['location'];
+  $category = $data['category'];
+  $date = $data['date'];
+  $mail = $data['mail'];
+
+  $price = maritpal_services_old_calculate_request_service_price_rate($location, $category, $date, $mail);
   return !$price ? (object)array('data' => (object)array()) : $price;
 }

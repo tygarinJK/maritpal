@@ -231,6 +231,23 @@ function maritpal_services_old_services_resources_alter(&$resources, &$endpoint)
         'access arguments' => array('view'),
         'access arguments append' => TRUE,
       ),
+      'rate' => array(
+        'help' => 'Calculate and return request service price',
+        'file' => array('type' => 'inc', 'module' => 'maritpal_services_old', 'name' => 'resources/request'),
+        'callback' => '__service_request_rate_calculate',
+        'args' => array(
+          array(
+            'name' => 'price',
+            'type' => 'array',
+            'description'    => t('An array representing a price.'),
+            'source' => 'data',
+            'optional' => FALSE,
+          ),
+        ),
+        'access callback' => '_commerce_resource_access',
+        'access arguments' => array('view'),
+        'access arguments append' => TRUE,
+      ),
     ),
   );
 
@@ -680,6 +697,7 @@ function maritpal_services_old_privatemsg_image_attach($mid, $fid, $width, $heig
 
 /**
  * Calculate Request service price depend on Pricing rule
+ *  (depricated) @see maritpal_services_old_calculate_request_service_price_rate()
  *
  * @param arr $location
  *  MDC location array
@@ -770,6 +788,7 @@ function maritpal_services_old_calculate_request_service_price($location, $categ
 
 /**
  * Calculate Request service price depend on Pricing rule
+ *  (depricated) @see maritpal_service_order_price_rule_term_load()
  *
  * @param arr $location
  *  MDC location array
@@ -863,6 +882,96 @@ function maritpal_services_old_get_pricing_rule($location, $category, $date, $ma
   // if (!isset($term)) $term = taxonomy_term_load(1988);
   if (!isset($term)) return FALSE;
   return $term;
+}
+
+/**
+ * NEW | Calculate Request service price depend on Pricing rule
+ *
+ * @param arr $location
+ *  MDC location array
+ * @param int $category
+ *  MDC Category
+ * @param arr $date
+ *  Date array
+ * @param str $mail
+ *  (optional) User mail
+ *
+ * @return object
+ *  Price object
+ */
+function maritpal_services_old_calculate_request_service_price_rate($location, $category, $date, $mail = NULL) {
+  $pricing_rule = maritpal_service_order_price_rule_term_load($location, $category, $date, $mail);
+
+  if (!$pricing_rule) return FALSE;
+
+  // -- price parameters
+  $params = array(
+    'date_val' => strtotime($date['value']),
+    'date_val2' => strtotime($date['value2']),
+    'rate' => floatval($pricing_rule->field_serv_rate['und'][0]['value']),
+    'per' => $pricing_rule->field_serv_rate_dur['und'][0]['value'],
+    'price_hp' => array(
+      'amount' => intval($pricing_rule->field_serv_rate_amount['und'][0]['value']),
+      'currency_code' => $pricing_rule->field_serv_rate_currency['und'][0]['currency_code'],
+    )
+  );
+  $params['duration'] = ($params['date_val2'] - $params['date_val']) / 3600;
+
+  $price = array(
+    'currency_code' => $params['price_hp']['currency_code'],
+    'taxes' => array(),
+    'discount' => 0,
+  );
+
+  if ($params['per'] == 'hour')
+    $price['amount'] = round($params['duration'] * ($params['rate'] * $params['price_hp']['amount']), 0, PHP_ROUND_HALF_UP);
+  else
+    $price['amount'] = $params['price_hp']['amount'];
+
+  // -- Admin rate/Transsfer rate/Bank fee
+  // admin tax
+  $admin_tax = variable_get('maritpal_admin_rate', 0);
+  $price['taxes']['admin'] = round(($price['amount'] / 100) * $admin_tax, 0);
+
+  // transfer tax
+  $transfer_tax = variable_get('maritpal_transfer_rate', 0);
+  $price['taxes']['transfer'] = round(($price['amount'] / 100) * $transfer_tax, 0);
+
+  // surcharge tax
+  $surcharge_tax = variable_get('maritpal_surcharge_rate', 0);
+  $price['taxes']['surcharge'] = round(($price['amount'] / 100) * $surcharge_tax, 0);
+
+  // additional taxes
+  $price['taxes']['additional']['sum'] = 0;
+  $addditional_taxes = variable_get('maritpal_additional_taxes', array());
+  foreach ($addditional_taxes as $i => $tax) {
+    $price['taxes']['additional'][] = array(
+      'name' => $tax['name'],
+      'amount' => round(($price['amount'] / 100) * $tax['value'], 0),
+    );
+    $price['taxes']['additional']['sum'] += round(($price['amount'] / 100) * $tax['value'], 0);
+  }
+
+  // -- create result
+  if (!empty($price['amount'])) {
+    return (object)array(
+      'data' => (object)array(
+        'rule' => $pricing_rule->tid,
+        'total' => $price['amount'] + $price['taxes']['admin'] + $price['taxes']['transfer'] + $price['taxes']['surcharge'] + $price['taxes']['additional']['sum'] + $price['discount'],
+        'currency_code' => $price['currency_code'],
+        'components' => (object)array(
+          'base_price' => intval($price['amount']),
+          'admin_tax' => intval($price['taxes']['admin']),
+          'transfer_tax' => intval($price['taxes']['transfer']),
+          // 'bank_fee' => intval($price['taxes']['bank_fee']),
+          'surcharge' => intval($price['taxes']['surcharge']),
+          'additional_taxes' => intval($price['taxes']['additional']['sum']),
+          'discount' => intval($price['discount']),
+        ), 
+      ),
+    );
+  }
+  else return FALSE;
 }
 
 /**

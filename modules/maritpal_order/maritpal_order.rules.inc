@@ -238,48 +238,6 @@ function maritpal_order_account_balance_pricing_calculation($user, $commerce_lin
 		TRUE
 	);	
 
-	// /**
-	//  * Admin rate price component
-	//  */
-	// $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
-	// 	$line_item_wrapper->commerce_unit_price->value(),
-	// 	'admin_rate',
-	// 	array(
-	// 		'amount' => $price['taxes']['admin'],
-	// 		'currency_code' => $price['currency_code'],
-	// 		'data' => array(),
-	// 	),
-	// 	FALSE
-	// );
-
-	// /**
-	//  * Transfer rate price component
-	//  */
-	// $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
-	// 	$line_item_wrapper->commerce_unit_price->value(),
-	// 	'transfer_rate',
-	// 	array(
-	// 		'amount' => $price['taxes']['transfer'],
-	// 		'currency_code' => $price['currency_code'],
-	// 		'data' => array(),
-	// 	),
-	// 	FALSE
-	// );
-
-	// /**
-	//  * Bank fee price component
-	//  */
-	// $line_item_wrapper->commerce_unit_price->data = commerce_price_component_add(
-	// 	$line_item_wrapper->commerce_unit_price->value(),
-	// 	'bank_transfer_fee',
-	// 	array(
-	// 		'amount' => $price['taxes']['bank_fee'],
-	// 		'currency_code' => $price['currency_code'],
-	// 		'data' => array(),
-	// 	),
-	// 	FALSE
-	// );
-
 	// dpm($commerce_line_item);
 	commerce_line_item_rebase_unit_price($line_item_wrapper->value());
 
