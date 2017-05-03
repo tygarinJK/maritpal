@@ -81,7 +81,7 @@ function __service_request_price_calculate($data) {
   $location = $data['location'];
   $category = $data['category'];
   $date = $data['date'];
-  $mail = $data['mail'];
+  $mail = isset($data['mail']) ? $data['mail'] : NULL;
 
   $price = maritpal_services_old_calculate_request_service_price($location, $category, $date, $mail);
   return !$price ? (object)array('data' => (object)array()) : $price;

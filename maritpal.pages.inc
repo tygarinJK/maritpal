@@ -462,125 +462,125 @@ function maritpal_reports_mdc_figures_by_orders_form($form, $form_state) {
 		'#default_value' => !empty($q_params['period_to']) ? $q_params['period_to'] : NULL,
 	);
 
-	// $form['filters']['mdc'] = array(
-	// 	'#type' => 'fieldset',
-	// 	'#title' => t('MDC'),
-	// 	'#collapsible' => TRUE,
-	// 	'#collapsed' => TRUE,
-	// );
-	// $form['filters']['mdc']['service_location'] = array(
-	// 	'#type' => 'hierarchical_select',
-  //   '#title' => t('Location'),
-  //   '#size' => 1,
-  //   '#config' => array(
-  //     'module' => 'hs_taxonomy',
-  //     'params' => array(
-  //       'vid' => 14,
-  //       'separator' => '|',
-  //     ),
-  //     'save_lineage'    => 0,
-  //     'enforce_deepest' => 0,
-  //     'resizable'       => 0,
-  //     'level_labels' => array(
-  //       'status' => 1,
-  //       'labels' => array(
-  //         0 => t(' - Select Country - '),
-  //         1 => t(' - Select City - '),
-  //       ),
-  //     ),
-  //     'dropbox' => array(
-  //       'status'   => 0,
-  //       'title'    => t('All selections'), 
-  //       'limit'    => 0,
-  //       'reset_hs' => 1,
-  //       'sort'     => 1,
-  //     ),
-  //     'editability' => array(
-  //       'status'           => 0,
-  //       'item_types'       => array(),
-  //       'allowed_levels'   => array(
-  //         0 => 0,
-  //         1 => 0,
-  //         2 => 1,
-  //       ),
-  //       'allow_new_levels' => 0,
-  //       'max_levels'       => 3,
-  //     ),
-  //     'entity_count'    => array(
-  //       'enabled' => 0,
-  //       'require_entity' => 0,
-  //       'settings' => array(
-  //         'count_children' => 0,
-  //         'entity_types' => array(),
-  //       ),
-  //     ),
-  //     // These settings cannot be configured through the UI: they can only be
-  //     // overridden through code.
-  //     'animation_delay'    => 400,
-  //     'exclusive_lineages' => array(),
-  //     'render_flat_select' => 0,
-  //   ),
-  //   '#description' => t(''),
-  //   '#default_value' => !empty($q_params['service_location']) ? $q_params['service_location'] : '',
-  //   '#weight' => -49,
-	// );
-	// $form['filters']['mdc']['service_category'] = array(
-	// 	'#type' => 'hierarchical_select',
-  //   '#title' => t('Category'),
-  //   '#size' => 1,
-  //   '#config' => array(
-  //     'module' => 'hs_taxonomy',
-  //     'params' => array(
-  //       'vid' => 13,
-  //       'separator' => '|',
-  //     ),
-  //     'save_lineage'    => 0,
-  //     'enforce_deepest' => 0,
-  //     'resizable'       => 0,
-  //     'level_labels' => array(
-  //       'status' => 1,
-  //       'labels' => array(
-  //         0 => t(' - MDC 1 - '),
-  //         1 => t(' - MDC 2 - '),
-  //         2 => t(' - MDC 3 - '),
-  //         3 => t(' - MDC 4 - '),
-  //       ),
-  //     ),
-  //     'dropbox' => array(
-  //       'status'   => 0,
-  //       'title'    => t('All selections'),
-  //       'limit'    => 0,
-  //       'reset_hs' => 1,
-  //       'sort'     => 1,
-  //     ),
-  //     'editability' => array(
-  //       'status'           => 0,
-  //       'item_types'       => array(),
-  //       'allowed_levels'   => array(
-  //         0 => 0,
-  //         1 => 0,
-  //         2 => 1,
-  //       ),
-  //       'allow_new_levels' => 0,
-  //       'max_levels'       => 4,
-  //     ),
-  //     'entity_count'    => array(
-  //       'enabled' => 0,
-  //       'require_entity' => 0,
-  //       'settings' => array(
-  //         'count_children' => 0,
-  //         'entity_types' => array(),
-  //       ),
-  //     ),
-  //     // These settings cannot be configured through the UI: they can only be
-  //     // overridden through code.
-  //     'animation_delay'    => 400,
-  //     'exclusive_lineages' => array(),
-  //     'render_flat_select' => 0,
-  //   ),
-  //   '#description' => t(''),
-  //   '#default_value' => !empty($q_params['service_category']) ? $q_params['service_category'] : '',
-	// );
+	$form['filters']['mdc'] = array(
+		'#type' => 'fieldset',
+		'#title' => t('MDC'),
+		'#collapsible' => TRUE,
+		'#collapsed' => TRUE,
+	);
+	$form['filters']['mdc']['service_location'] = array(
+		'#type' => 'hierarchical_select',
+    '#title' => t('Location'),
+    '#size' => 1,
+    '#config' => array(
+      'module' => 'hs_taxonomy',
+      'params' => array(
+        'vid' => 14,
+        'separator' => '|',
+      ),
+      'save_lineage'    => 0,
+      'enforce_deepest' => 0,
+      'resizable'       => 0,
+      'level_labels' => array(
+        'status' => 1,
+        'labels' => array(
+          0 => t(' - Select Country - '),
+          1 => t(' - Select City - '),
+        ),
+      ),
+      'dropbox' => array(
+        'status'   => 0,
+        'title'    => t('All selections'), 
+        'limit'    => 0,
+        'reset_hs' => 1,
+        'sort'     => 1,
+      ),
+      'editability' => array(
+        'status'           => 0,
+        'item_types'       => array(),
+        'allowed_levels'   => array(
+          0 => 0,
+          1 => 0,
+          2 => 1,
+        ),
+        'allow_new_levels' => 0,
+        'max_levels'       => 3,
+      ),
+      'entity_count'    => array(
+        'enabled' => 0,
+        'require_entity' => 0,
+        'settings' => array(
+          'count_children' => 0,
+          'entity_types' => array(),
+        ),
+      ),
+      // These settings cannot be configured through the UI: they can only be
+      // overridden through code.
+      'animation_delay'    => 400,
+      'exclusive_lineages' => array(),
+      'render_flat_select' => 0,
+    ),
+    '#description' => t(''),
+    '#default_value' => !empty($q_params['service_location']) ? $q_params['service_location'] : '',
+    '#weight' => -49,
+	);
+	$form['filters']['mdc']['service_category'] = array(
+		'#type' => 'hierarchical_select',
+    '#title' => t('Category'),
+    '#size' => 1,
+    '#config' => array(
+      'module' => 'hs_taxonomy',
+      'params' => array(
+        'vid' => 13,
+        'separator' => '|',
+      ),
+      'save_lineage'    => 0,
+      'enforce_deepest' => 0,
+      'resizable'       => 0,
+      'level_labels' => array(
+        'status' => 1,
+        'labels' => array(
+          0 => t(' - MDC 1 - '),
+          1 => t(' - MDC 2 - '),
+          2 => t(' - MDC 3 - '),
+          3 => t(' - MDC 4 - '),
+        ),
+      ),
+      'dropbox' => array(
+        'status'   => 0,
+        'title'    => t('All selections'),
+        'limit'    => 0,
+        'reset_hs' => 1,
+        'sort'     => 1,
+      ),
+      'editability' => array(
+        'status'           => 0,
+        'item_types'       => array(),
+        'allowed_levels'   => array(
+          0 => 0,
+          1 => 0,
+          2 => 1,
+        ),
+        'allow_new_levels' => 0,
+        'max_levels'       => 4,
+      ),
+      'entity_count'    => array(
+        'enabled' => 0,
+        'require_entity' => 0,
+        'settings' => array(
+          'count_children' => 0,
+          'entity_types' => array(),
+        ),
+      ),
+      // These settings cannot be configured through the UI: they can only be
+      // overridden through code.
+      'animation_delay'    => 400,
+      'exclusive_lineages' => array(),
+      'render_flat_select' => 0,
+    ),
+    '#description' => t(''),
+    '#default_value' => !empty($q_params['service_category']) ? $q_params['service_category'] : '',
+	);
 
 	$form['filters']['actions'] = array(
 		'#type' => 'container',
@@ -599,10 +599,10 @@ function maritpal_reports_mdc_figures_by_orders_form($form, $form_state) {
 		->entityCondition('bundle', 'request')
 		->addMetaData('account', user_load(4));
 
-	// if (!empty($q_params['service_location']))
-	// 	$query->fieldCondition('field_serv_loc_city', 'tid', $q_params['service_location'], '=');
-	// if (!empty($q_params['service_category']))
-	// 	$query->fieldCondition('field_request_serv_cat', 'tid', $q_params['service_category'], '=');
+	if (!empty($q_params['service_location']))
+		$query->fieldCondition('field_serv_loc_city', 'tid', $q_params['service_location'], 'CONTAINS');
+	if (!empty($q_params['service_category']))
+		$query->fieldCondition('field_request_serv_cat', 'tid', $q_params['service_category'], 'CONTAINS');
 
 	if (!empty($q_params['period_from']))
 		$query->propertyCondition('created', strtotime($q_params['period_from']), '>');

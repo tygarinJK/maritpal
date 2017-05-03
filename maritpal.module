@@ -172,7 +172,7 @@ function maritpal_menu_alter(&$items) {
   $items['messages/new']['access callback'] = 'user_access';
   $items['messages/new']['access arguments'] = array('administer privatemsg settings');
 
-  dpm($items);
+  // dpm($items);
   return $items;
 }
 
@@ -543,6 +543,22 @@ function maritpal_commerce_currency_info_alter(&$currencies) {
  
 //   return trim(t('@code_before@code_spacer@negative@symbol_before@price@symbol_spacer@symbol_after@code_spacer@code_after', $replacements));
 // }
+
+/**
+ * Check if privatemsg thread is new
+ *
+ * @param obj $privatemsg_message
+ *  Privatemsg message object
+ * @param obj $account
+ *  User who check account
+ */
+function maritpal_privatemsg_thread_is_new($privatemsg_message, $account) {
+  if (!is_numeric($privatemsg_message->mid)) return FALSE;
+
+  $thread = privatemsg_thread_load($privatemsg_message->thread_id, $account, 0);
+
+  return $thread['message_count'] == 1 ? TRUE : FALSE;
+}
 
 /**
  * Check if thread has tag
