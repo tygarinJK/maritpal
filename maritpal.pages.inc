@@ -12,6 +12,7 @@ function maritpal_pricing_rules_review() {
 	$query = new EntityFieldQuery();
   $result = $query->entityCondition('entity_type', 'taxonomy_term')
   ->propertyCondition('vid', 23, '=')
+	->propertyOrderBy('name', $direction = 'ASC')
   ->execute();
   
 	$rows = array();
@@ -29,6 +30,7 @@ function maritpal_pricing_rules_review() {
 			$rate_currency = isset($term->field_serv_rate_currency['und']) ? $term->field_serv_rate_currency['und'][0]['currency_code'] : '';
 
   		$rows[] = array(
+				'tid' => $term->tid,
   			'name' => $term->name, 
 				'location' => $location, 
 				'category' => $category,
@@ -44,6 +46,7 @@ function maritpal_pricing_rules_review() {
 
 	$output = theme_table(array(
 		'header' => array(
+			'tid' => '#',
 			'name' => t('Name'), 
 			'location' => t('Service Location'), 
 			'category' => t('Service Category'),
@@ -673,40 +676,6 @@ function maritpal_reports_mdc_figures_by_orders_form($form, $form_state) {
 
 		$categories = maritpal_get_mdc_category_tree($mdc[0]);
 		$location = maritpal_get_mdc_location_tree($mdc[1]);
-
-
-
-	// 	// get regular service order of mdc 
-		// $query = new EntityFieldQuery();
-		// $reg_orders = $query->entityCondition('entity_type', 'node')
-		// 	->entityCondition('bundle', 'request')
-		// 	->fieldCondition('field_order_type', 'value', 1, '=')
-		// 	->fieldCondition('field_serv_loc_city', 'tid', $mdc[1], '=')
-		// 	->fieldCondition('field_request_serv_cat', 'tid', $mdc[0], '=')
-		// 	->addMetaData('account', user_load(4));
-
-	// 	if (!empty($q_params['period_from']))
-	// 		$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
-	// 	if (!empty($q_params['period_to']))
-	// 		$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
-	
-		// $reg_orders = $query->execute();
-
-	// 	// get bid service order of mdc 
-	// 	$query = new EntityFieldQuery();
-	// 	$bid_orders = $query->entityCondition('entity_type', 'node')
-	// 		->entityCondition('bundle', 'request')
-	// 		->fieldCondition('field_order_type', 'value', 2, '=')
-	// 		->fieldCondition('field_serv_loc_city', 'tid', $mdc[1], '=')
-	// 		->fieldCondition('field_request_serv_cat', 'tid', $mdc[0], '=')
-	// 		->addMetaData('account', user_load(4));
-
-	// 	if (!empty($q_params['period_from']))
-	// 		$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
-	// 	if (!empty($q_params['period_to']))
-	// 		$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
-	
-	// 	$bid_orders = $query->execute();
 
 		$rows[] = array(
 			'mdc_0' => $categories['mdc_0'], 

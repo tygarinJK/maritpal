@@ -170,7 +170,7 @@ function maritpal_order_request_service_order_form($form, &$form_state, $type, $
         'vid' => 13,
         'separator' => '|',
       ),
-      'save_lineage'    => 0,
+      'save_lineage'    => 1,
       'enforce_deepest' => 1,
       'resizable'       => 0,
       'level_labels' => array(
@@ -270,19 +270,19 @@ function maritpal_order_request_service_order_form($form, &$form_state, $type, $
 
     $form['resource_ref']['#value'] = $user_ref->uid;
 
-    $form['request_serv_loc_hs']['#config']['module'] = 'hs_smallhierarchy';
-    $form['request_serv_loc_hs']['#config']['params'] = array(
-      'hierarchy' => _maritpal_order_build_sp_location($user_ref),
-      'id' => 'service-location-hs',
-      'separator' => '|',
-    );
+    // $form['request_serv_loc_hs']['#config']['module'] = 'hs_smallhierarchy';
+    // $form['request_serv_loc_hs']['#config']['params'] = array(
+    //   'hierarchy' => _maritpal_order_build_sp_location($user_ref),
+    //   'id' => 'service-location-hs',
+    //   'separator' => '|',
+    // );
 
-    $form['request_serv_cat_hs']['#config']['module'] = 'hs_smallhierarchy';
-    $form['request_serv_cat_hs']['#config']['params'] = array(
-      'hierarchy' => _maritpal_order_build_sp_categories($user_ref),
-      'id' => 'service-category-hs',
-      'separator' => '|',
-    );
+    // $form['request_serv_cat_hs']['#config']['module'] = 'hs_smallhierarchy';
+    // $form['request_serv_cat_hs']['#config']['params'] = array(
+    //   'hierarchy' => _maritpal_order_build_sp_categories($user_ref),
+    //   'id' => 'service-category-hs',
+    //   'separator' => '|',
+    // );
   }
   else {
     drupal_set_title(t('Request Bid Service Order'));
@@ -506,13 +506,14 @@ function maritpal_order_request_service_order_form_submit($form, &$form_state) {
     $node->field_serv_loc_city[LANGUAGE_NONE][]['tid'] = intval($v);
   }
 
+  
   $node->field_request_serv_cat[LANGUAGE_NONE][0]['tid'] = intval(end($cats));
+  dpm($form_state);
+  // node_save($node);
 
-  node_save($node);
+  // $form_state['redirect'] = 'user/'. $user->uid .'/browse-orders/draft';
 
-  $form_state['redirect'] = 'user/'. $user->uid .'/browse-orders/draft';
-
-  drupal_set_message(t('Request <strong>@name:</strong> was succesfully created', array('@name:' => $node->title)), 'status', FALSE);
+  // drupal_set_message(t('Request <strong>@name:</strong> was succesfully created', array('@name:' => $node->title)), 'status', FALSE);
 }
 
 /**
