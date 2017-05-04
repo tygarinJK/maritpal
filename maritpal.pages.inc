@@ -434,7 +434,355 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form_validate(&$fo
 function maritpal_reports_mdc_figures_by_orders_form($form, $form_state) {
 	// Path query
 	$q_params = drupal_get_query_parameters();
-	dpm($q_params);
+	// dpm($q_params);
+
+	$form = maritpal_reports_filters_form();
+
+	$query = new EntityFieldQuery();
+	$orders = $query->entityCondition('entity_type', 'node')
+		->entityCondition('bundle', 'request')
+		->addMetaData('account', user_load(4));
+
+	if (!empty($q_params['service_location']))
+		$query->fieldCondition('field_serv_loc_city', 'tid', $q_params['service_location'], 'CONTAINS');
+	if (!empty($q_params['service_category'])) {
+		$chids = array($q_params['service_category']);
+
+		$tree = taxonomy_get_tree(13, $q_params['service_category']);
+		foreach ($tree as $i => $term) {
+			$chids[] = $term->tid;
+		}
+		$query->fieldCondition('field_request_serv_cat', 'tid', $chids, 'IN');
+	}
+
+	if (!empty($q_params['period_from']))
+		$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
+	if (!empty($q_params['period_to']))
+		$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
+
+	$orders = $query->execute();
+
+	// fill table rows
+	$rows = array();
+	if (isset($orders['node'])) {
+		$nids = array_keys($orders['node']);
+		$nodes = node_load_multiple($nids);
+
+		// dpm($nodes);
+
+		$statistics = array();
+		foreach ($nodes as $node) {
+			// sort by mdc
+			$mdc_key = end($node->field_request_serv_cat['und'])['tid'] .'_'. end($node->field_serv_loc_city['und'])['tid'];
+
+			// sort orders by status
+			if (isset($node->field_request_status['und'])) {
+				switch ($node->field_request_status['und'][0]['tid']) {
+					case '10':
+					case '11':
+						$statistics[$mdc_key]['opened'][] = $node->nid;
+						break;
+					case '14':
+						$statistics[$mdc_key]['confirmed'][] = $node->nid;
+						break;
+					case '13':
+					case '15':
+						$statistics[$mdc_key]['canceled'][] = $node->nid;
+						break;
+					case '16':
+						$statistics[$mdc_key]['closed'][] = $node->nid;
+						break;
+				}
+			}
+
+			// direct orders
+			if (isset($node->field_order_type['und']) && $node->field_order_type['und'][0]['value'] == 1) {
+				$statistics[$mdc_key]['direct_orders']['orders'][] = $node->nid;
+
+			}
+			// bid orders
+			elseif (isset($node->field_order_type['und']) && $node->field_order_type['und'][0]['value'] == 2) {
+				$statistics[$mdc_key]['bid_orders']['orders'][] = $node->nid;
+
+				// bid order with no proposal
+				if ($node->comment_count == 0) $statistics[$mdc_key]['bid_orders']['no_proposal'][] = $node->nid;
+
+				if (isset($node->field_request_status['und']) && $node->field_request_status['und'][0]['tid'] == 12) {
+					// bid order which not confirmed
+					$statistics[$mdc_key]['bid_orders']['approved'][] = $node->nid;
+				}
+			}
+		}
+	}
+
+	// dpm($statistics);
+
+	foreach ($statistics as $key => $value) {
+		$mdc = explode('_', $key);
+		if (empty($mdc[0]) || empty($mdc[1])) continue;
+
+		$categories = maritpal_get_mdc_category_tree($mdc[0]);
+		$location = maritpal_get_mdc_location_tree($mdc[1]);
+
+		$rows[] = array(
+			'mdc_0' => $categories['mdc_0'], 
+			'mdc_1' => $categories['mdc_1'], 
+			'mdc_2' => $categories['mdc_2'],
+			'mdc_3' => $categories['mdc_3'],
+			'country' => $location['country'],
+			'city' => $location['city'],
+			'direct_created' => isset($value['direct_orders']['orders']) ? count($value['direct_orders']['orders']) : 0,
+			'confirmed' => isset($value['confirmed']) ? count($value['confirmed']) : 0,
+			'opened' => isset($value['opened']) ? count($value['opened']) : 0,
+			'canceled' => isset($value['canceled']) ? count($value['canceled']) : 0,
+			'closed' => isset($value['closed']) ? count($value['closed']) : 0,
+			'bid_created' => isset($value['bid_orders']['orders']) ? count($value['bid_orders']['orders']) : 0,
+			'bid_no_pro' => isset($value['bid_orders']['no_proposal']) ? count($value['bid_orders']['no_proposal']) : 0,
+			'bid_not_confirmed' => isset($value['bid_orders']['approved']) ? count($value['bid_orders']['approved']) : 0,
+		);
+	}
+
+	$per_page = 20;
+	// Initialize the pager
+	$current_page = pager_default_initialize(count($rows), $per_page);
+	// Split list into page sized chunks
+	$chunks = array_chunk($rows, $per_page, TRUE);
+
+	$output = theme_table(array(
+		'header' => array(
+			'mdc_0' => t('MDC level 1'), 
+			'mdc_1' => t('MDC level 2'), 
+			'mdc_2' => t('MDC level 3'),
+			'mdc_3' => t('MDC level 4'),
+			'country' => t('Country'),
+			'city' => t('City'),
+			'direct_created' => t('Direct Orders created'),
+			'confirmed' => t('Confirmed Orders'),
+			'opened' => t('Open Orders'),
+			'canceled' => t('Canceled Orders'),
+			'closed' => t('Closed Orders'),
+			'bid_created' => t('Bid Orders created'),
+			'bid_no_pro' => t('Bid Orders with no proposal'),
+			'bid_not_confirmed' => t('Bid Orders not confirmed'),
+		),
+		'rows' => $chunks[$current_page],
+		'attributes' => array(),
+		'caption' => t(''),
+		'colgroups' => array(),
+		'sticky' => FALSE,
+		'empty' => t('No items found'),
+	));
+
+	// Show the pager
+	$output .= theme('pager', array('quantity',count($rows)));
+
+	$form['result_table'] = array(
+		'#markup' => $output,
+	);
+
+	$form['#attached']['css'][] = drupal_get_path('module', 'maritpal') .'/css/maritpal.css';
+	$form['#submit'][] = 'maritpal_reports_mdc_figures_by_providers_and_region_form_submit';
+	return $form;	
+}
+
+function maritpal_reports_mdc_figures_by_providers_and_region_form_submit(&$form, &$form_state) {
+	$q_params = array();
+	if (!empty($form_state['values']['period_from'])) $q_params['period_from'] = $form_state['values']['period_from'];
+	if (!empty($form_state['values']['period_to'])) $q_params['period_to'] = $form_state['values']['period_to'];
+	if (!empty($form_state['values']['service_location'][0])) $q_params['service_location'] = $form_state['values']['service_location'][0];
+	if (!empty($form_state['values']['service_category'][0])) $q_params['service_category'] = $form_state['values']['service_category'][0];
+
+	if(count($q_params) > 0)
+		$form_state['redirect'] = array(current_path(), array('query' => $q_params));
+
+	// dpm($form_state);
+}
+
+/**
+ * Report marketers form
+ */
+function maritpal_reports_mdc_figures_by_marketers_form($form, $form_state) {
+	// Path query
+	$q_params = drupal_get_query_parameters();
+	// dpm($q_params);
+
+	$form = maritpal_reports_filters_form();
+
+	unset(
+		$form['filters']['mdc']['service_category']
+	);
+
+	$form['filters']['marketing_code'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Marketing code'),
+		'#default_value' => isset($q_params['marketing_code']) ? $q_params['marketing_code'] : '',
+		'#weight' => 49,
+	);
+
+	// $query = new EntityFieldQuery();
+	// $orders = $query->entityCondition('entity_type', 'node')
+	// 	->entityCondition('bundle', 'request')
+	// 	->addMetaData('account', user_load(4));
+
+	// if (!empty($q_params['service_location']))
+	// 	$query->fieldCondition('field_serv_loc_city', 'tid', $q_params['service_location'], 'CONTAINS');
+	// if (!empty($q_params['service_category'])) {
+	// 	$chids = array($q_params['service_category']);
+
+	// 	$tree = taxonomy_get_tree(13, $q_params['service_category']);
+	// 	foreach ($tree as $i => $term) {
+	// 		$chids[] = $term->tid;
+	// 	}
+	// 	$query->fieldCondition('field_request_serv_cat', 'tid', $chids, 'IN');
+	// }
+
+	// if (!empty($q_params['period_from']))
+	// 	$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
+	// if (!empty($q_params['period_to']))
+	// 	$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
+
+	// $orders = $query->execute();
+
+	// // fill table rows
+	// $rows = array();
+	// if (isset($orders['node'])) {
+	// 	$nids = array_keys($orders['node']);
+	// 	$nodes = node_load_multiple($nids);
+
+	// 	// dpm($nodes);
+
+	// 	$statistics = array();
+	// 	foreach ($nodes as $node) {
+	// 		// sort by mdc
+	// 		$mdc_key = end($node->field_request_serv_cat['und'])['tid'] .'_'. end($node->field_serv_loc_city['und'])['tid'];
+
+	// 		// sort orders by status
+	// 		if (isset($node->field_request_status['und'])) {
+	// 			switch ($node->field_request_status['und'][0]['tid']) {
+	// 				case '10':
+	// 				case '11':
+	// 					$statistics[$mdc_key]['opened'][] = $node->nid;
+	// 					break;
+	// 				case '14':
+	// 					$statistics[$mdc_key]['confirmed'][] = $node->nid;
+	// 					break;
+	// 				case '13':
+	// 				case '15':
+	// 					$statistics[$mdc_key]['canceled'][] = $node->nid;
+	// 					break;
+	// 				case '16':
+	// 					$statistics[$mdc_key]['closed'][] = $node->nid;
+	// 					break;
+	// 			}
+	// 		}
+
+	// 		// direct orders
+	// 		if (isset($node->field_order_type['und']) && $node->field_order_type['und'][0]['value'] == 1) {
+	// 			$statistics[$mdc_key]['direct_orders']['orders'][] = $node->nid;
+
+	// 		}
+	// 		// bid orders
+	// 		elseif (isset($node->field_order_type['und']) && $node->field_order_type['und'][0]['value'] == 2) {
+	// 			$statistics[$mdc_key]['bid_orders']['orders'][] = $node->nid;
+
+	// 			// bid order with no proposal
+	// 			if ($node->comment_count == 0) $statistics[$mdc_key]['bid_orders']['no_proposal'][] = $node->nid;
+
+	// 			if (isset($node->field_request_status['und']) && $node->field_request_status['und'][0]['tid'] == 12) {
+	// 				// bid order which not confirmed
+	// 				$statistics[$mdc_key]['bid_orders']['approved'][] = $node->nid;
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	// // dpm($statistics);
+
+	// foreach ($statistics as $key => $value) {
+	// 	$mdc = explode('_', $key);
+	// 	if (empty($mdc[0]) || empty($mdc[1])) continue;
+
+	// 	$categories = maritpal_get_mdc_category_tree($mdc[0]);
+	// 	$location = maritpal_get_mdc_location_tree($mdc[1]);
+
+	// 	$rows[] = array(
+	// 		'mdc_0' => $categories['mdc_0'], 
+	// 		'mdc_1' => $categories['mdc_1'], 
+	// 		'mdc_2' => $categories['mdc_2'],
+	// 		'mdc_3' => $categories['mdc_3'],
+	// 		'country' => $location['country'],
+	// 		'city' => $location['city'],
+	// 		'direct_created' => isset($value['direct_orders']['orders']) ? count($value['direct_orders']['orders']) : 0,
+	// 		'confirmed' => isset($value['confirmed']) ? count($value['confirmed']) : 0,
+	// 		'opened' => isset($value['opened']) ? count($value['opened']) : 0,
+	// 		'canceled' => isset($value['canceled']) ? count($value['canceled']) : 0,
+	// 		'closed' => isset($value['closed']) ? count($value['closed']) : 0,
+	// 		'bid_created' => isset($value['bid_orders']['orders']) ? count($value['bid_orders']['orders']) : 0,
+	// 		'bid_no_pro' => isset($value['bid_orders']['no_proposal']) ? count($value['bid_orders']['no_proposal']) : 0,
+	// 		'bid_not_confirmed' => isset($value['bid_orders']['approved']) ? count($value['bid_orders']['approved']) : 0,
+	// 	);
+	// }
+
+	$rows = array();
+
+	$per_page = 20;
+	// Initialize the pager
+	$current_page = pager_default_initialize(count($rows), $per_page);
+	// Split list into page sized chunks
+	$chunks = array_chunk($rows, $per_page, TRUE);
+
+	$output = theme_table(array(
+		'header' => array(
+			'country' => t('Country'),
+			'city' => t('City'),
+			'mark_code' => t('Marketing code'),
+			'prov_num' => t('Number of providers'),
+			'direct_confirmed' => t('Number of Direct Orders confirmed'),
+			'bid_confirmed' => t('Number of Bid Orders confirmed'),
+			'total' => t('Total Orders'),
+		),
+		'rows' => $chunks[$current_page],
+		'attributes' => array(),
+		'caption' => t(''),
+		'colgroups' => array(),
+		'sticky' => FALSE,
+		'empty' => t('No items found'),
+	));
+
+	// Show the pager
+	$output .= theme('pager', array('quantity',count($rows)));
+
+	$form['result_table'] = array(
+		'#markup' => $output,
+	);
+
+	$form['#attached']['css'][] = drupal_get_path('module', 'maritpal') .'/css/maritpal.css';
+	$form['#submit'][] = 'maritpal_reports_mdc_figures_by_marketers_form_submit';
+	return $form;	
+}
+
+function maritpal_reports_mdc_figures_by_marketers_form_submit(&$form, &$form_state) {
+	$q_params = array();
+	if (!empty($form_state['values']['period_from'])) $q_params['period_from'] = $form_state['values']['period_from'];
+	if (!empty($form_state['values']['period_to'])) $q_params['period_to'] = $form_state['values']['period_to'];
+	if (!empty($form_state['values']['service_location'][0])) $q_params['service_location'] = $form_state['values']['service_location'][0];
+	if (!empty($form_state['values']['service_category'][0])) $q_params['service_category'] = $form_state['values']['service_category'][0];
+	if (!empty($form_state['values']['marketing_code'])) $q_params['marketing_code'] = $form_state['values']['marketing_code'];
+
+	if(count($q_params) > 0)
+		$form_state['redirect'] = array(current_path(), array('query' => $q_params));
+
+	// dpm($form_state);
+}
+
+/**
+ * MDC Filters form (locations/categories)
+ *
+ * @see maritpal_reports_mdc_figures_by_orders_form()
+ */
+function maritpal_reports_filters_form($form, &$form_state) {
+	// Path query
+	$q_params = drupal_get_query_parameters();
 
 	$form['filters'] = array(
 		'#type' => 'fieldset',
@@ -587,6 +935,7 @@ function maritpal_reports_mdc_figures_by_orders_form($form, $form_state) {
 
 	$form['filters']['actions'] = array(
 		'#type' => 'container',
+		'#weight' => 50,
 	);
 	$form['filters']['actions']['submit'] = array(
 		'#type' => 'submit',
@@ -597,158 +946,7 @@ function maritpal_reports_mdc_figures_by_orders_form($form, $form_state) {
 		'#markup' => '<a href="/'. current_path() .'">'. t('Reset') .'</a>',
 	);
 
-	$query = new EntityFieldQuery();
-	$orders = $query->entityCondition('entity_type', 'node')
-		->entityCondition('bundle', 'request')
-		->addMetaData('account', user_load(4));
-
-	if (!empty($q_params['service_location']))
-		$query->fieldCondition('field_serv_loc_city', 'tid', $q_params['service_location'], 'CONTAINS');
-	if (!empty($q_params['service_category']))
-		$query->fieldCondition('field_request_serv_cat', 'tid', $q_params['service_category'], 'CONTAINS');
-
-	if (!empty($q_params['period_from']))
-		$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
-	if (!empty($q_params['period_to']))
-		$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
-
-	$orders = $query->execute();
-
-	// fill table rows
-	$rows = array();
-	if (isset($orders['node'])) {
-		$nids = array_keys($orders['node']);
-		$nodes = node_load_multiple($nids);
-
-		// dpm($nodes);
-
-		$statistics = array();
-		foreach ($nodes as $node) {
-			// sort by mdc
-			$mdc_key = $node->field_request_serv_cat['und'][0]['tid'] .'_'. $node->field_serv_loc_city['und'][0]['tid'];
-
-			// sort orders by status
-			if (isset($node->field_request_status['und'])) {
-				switch ($node->field_request_status['und'][0]['tid']) {
-					case '10':
-					case '11':
-						$statistics[$mdc_key]['opened'][] = $node->nid;
-						break;
-					case '14':
-						$statistics[$mdc_key]['confirmed'][] = $node->nid;
-						break;
-					case '13':
-					case '15':
-						$statistics[$mdc_key]['canceled'][] = $node->nid;
-						break;
-					case '16':
-						$statistics[$mdc_key]['closed'][] = $node->nid;
-						break;
-				}
-			}
-
-			// direct orders
-			if (isset($node->field_order_type['und']) && $node->field_order_type['und'][0]['value'] == 1) {
-				$statistics[$mdc_key]['direct_orders']['orders'][] = $node->nid;
-
-			}
-			// bid orders
-			elseif (isset($node->field_order_type['und']) && $node->field_order_type['und'][0]['value'] == 2) {
-				$statistics[$mdc_key]['bid_orders']['orders'][] = $node->nid;
-
-				// bid order with no proposal
-				if ($node->comment_count == 0) $statistics[$mdc_key]['bid_orders']['no_proposal'][] = $node->nid;
-
-				if (isset($node->field_request_status['und']) && $node->field_request_status['und'][0]['tid'] == 12) {
-					// bid order which not confirmed
-					$statistics[$mdc_key]['bid_orders']['approved'][] = $node->nid;
-				}
-			}
-		}
-	}
-
-	dpm($statistics);
-
-
-	foreach ($statistics as $key => $value) {
-		$mdc = explode('_', $key);
-		if (empty($mdc[0]) || empty($mdc[1])) continue;
-
-		$categories = maritpal_get_mdc_category_tree($mdc[0]);
-		$location = maritpal_get_mdc_location_tree($mdc[1]);
-
-		$rows[] = array(
-			'mdc_0' => $categories['mdc_0'], 
-			'mdc_1' => $categories['mdc_1'], 
-			'mdc_2' => $categories['mdc_2'],
-			'mdc_3' => $categories['mdc_3'],
-			'country' => $location['country'],
-			'city' => $location['city'],
-			'direct_created' => isset($value['direct_orders']['orders']) ? count($value['direct_orders']['orders']) : 0,
-			'confirmed' => isset($value['confirmed']) ? count($value['confirmed']) : 0,
-			'opened' => isset($value['opened']) ? count($value['opened']) : 0,
-			'canceled' => isset($value['canceled']) ? count($value['canceled']) : 0,
-			'closed' => isset($value['closed']) ? count($value['closed']) : 0,
-			'bid_created' => isset($value['bid_orders']['orders']) ? count($value['bid_orders']['orders']) : 0,
-			'bid_no_pro' => isset($value['bid_orders']['no_proposal']) ? count($value['bid_orders']['no_proposal']) : 0,
-			'bid_not_confirmed' => isset($value['bid_orders']['approved']) ? count($value['bid_orders']['approved']) : 0,
-		);
-	}
-
-	$per_page = 20;
-	// Initialize the pager
-	$current_page = pager_default_initialize(count($rows), $per_page);
-	// Split list into page sized chunks
-	$chunks = array_chunk($rows, $per_page, TRUE);
-
-	$output = theme_table(array(
-		'header' => array(
-			'mdc_0' => t('MDC level 1'), 
-			'mdc_1' => t('MDC level 2'), 
-			'mdc_2' => t('MDC level 3'),
-			'mdc_3' => t('MDC level 4'),
-			'country' => t('Country'),
-			'city' => t('City'),
-			'direct_created' => t('Direct Orders created'),
-			'confirmed' => t('Confirmed Orders'),
-			'opened' => t('Open Orders'),
-			'canceled' => t('Canceled Orders'),
-			'closed' => t('Closed Orders'),
-			'bid_created' => t('Bid Orders created'),
-			'bid_no_pro' => t('Bid Orders with no proposal'),
-			'bid_not_confirmed' => t('Bid Orders not confirmed'),
-		),
-		'rows' => $chunks[$current_page],
-		'attributes' => array(),
-		'caption' => t(''),
-		'colgroups' => array(),
-		'sticky' => FALSE,
-		'empty' => t('No items found'),
-	));
-
-	// Show the pager
-	$output .= theme('pager', array('quantity',count($rows)));
-
-	$form['result_table'] = array(
-		'#markup' => $output,
-	);
-
-	$form['#attached']['css'][] = drupal_get_path('module', 'maritpal') .'/css/maritpal.css';
-	$form['#submit'][] = 'maritpal_reports_mdc_figures_by_providers_and_region_form_submit';
-	return $form;	
-}
-
-function maritpal_reports_mdc_figures_by_providers_and_region_form_submit(&$form, &$form_state) {
-	$q_params = array();
-	if (!empty($form_state['values']['period_from'])) $q_params['period_from'] = $form_state['values']['period_from'];
-	if (!empty($form_state['values']['period_to'])) $q_params['period_to'] = $form_state['values']['period_to'];
-	if (!empty($form_state['values']['service_location'][0])) $q_params['service_location'] = $form_state['values']['service_location'][0];
-	if (!empty($form_state['values']['service_category'][0])) $q_params['service_category'] = $form_state['values']['service_category'][0];
-
-	if(count($q_params) > 0)
-		$form_state['redirect'] = array(current_path(), array('query' => $q_params));
-
-	dpm($form_state);
+	return $form;
 }
 
 /**
@@ -812,47 +1010,47 @@ function maritpal_get_mdc_location_tree($tid) {
 	return $result;
 }
 
-/**
- * Account balance deposit cash form
- */
-function maritpal_commerce_account_balance_deposit_cash($form, &$form_state, $account) {
-	$line_item = commerce_line_item_new('deposit');
-  $form_state['line_item'] = $line_item;
-  $form_state['order'] = commerce_order_new();
-  $form_state['account'] = $account;
+// /**
+//  * Account balance deposit cash form
+//  */
+// function maritpal_commerce_account_balance_deposit_cash($form, &$form_state, $account) {
+// 	$line_item = commerce_line_item_new('deposit');
+//   $form_state['line_item'] = $line_item;
+//   $form_state['order'] = commerce_order_new();
+//   $form_state['account'] = $account;
 
-  field_attach_form('commerce_line_item', $line_item, $form, $form_state);
+//   field_attach_form('commerce_line_item', $line_item, $form, $form_state);
 
-	$form['balance_amount'] = array(
-		'#type' => 'textfield',
-		'#title' => t('Balance'),
-		'#requred' => TRUE,
-		'#weight' => -50
-	);
+// 	$form['balance_amount'] = array(
+// 		'#type' => 'textfield',
+// 		'#title' => t('Balance'),
+// 		'#requred' => TRUE,
+// 		'#weight' => -50
+// 	);
 	
-	$form['balance_currency'] = array(
-		'#type' => 'select',
-		'#description' => t('Please select currency of Your location'),
-		'#options' => _get_enabled_currencies_options(),
-		'#requred' => TRUE,
-		'#weight' => -49
-	);
+// 	$form['balance_currency'] = array(
+// 		'#type' => 'select',
+// 		'#description' => t('Please select currency of Your location'),
+// 		'#options' => _get_enabled_currencies_options(),
+// 		'#requred' => TRUE,
+// 		'#weight' => -49
+// 	);
 
-  // // The standard commerce unit price widget will have to be hidden.
-  // $form['commerce_unit_price'][LANGUAGE_NONE][0]['amount']['#type'] = 'hidden';
-  // $form['commerce_unit_price'][LANGUAGE_NONE][0]['amount']['#value'] = 0;
+//   // // The standard commerce unit price widget will have to be hidden.
+//   // $form['commerce_unit_price'][LANGUAGE_NONE][0]['amount']['#type'] = 'hidden';
+//   // $form['commerce_unit_price'][LANGUAGE_NONE][0]['amount']['#value'] = 0;
 
-	$form['actions'] = array(
-		'#type' => 'container',
-	);
-	$form['actions']['submit'] = array(
-		'#type' => 'submit',
-		'#value' => t('Deposit cash')
-	);
+// 	$form['actions'] = array(
+// 		'#type' => 'container',
+// 	);
+// 	$form['actions']['submit'] = array(
+// 		'#type' => 'submit',
+// 		'#value' => t('Deposit cash')
+// 	);
 
-	return $form;
-}
+// 	return $form;
+// }
 
-function maritpal_commerce_account_balance_deposit_cash_submit($form, &$form_state) {
-	dpm($form_state);
-}
+// function maritpal_commerce_account_balance_deposit_cash_submit($form, &$form_state) {
+// 	dpm($form_state);
+// }

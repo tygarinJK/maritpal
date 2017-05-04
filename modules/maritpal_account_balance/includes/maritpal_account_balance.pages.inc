@@ -153,3 +153,48 @@ function maritpal_account_balance_refill_form_submit($form, &$form_state) {
 function maritpal_account_balance_deposit_page() {
   return '';
 }
+
+/**
+ * Account balance deposit cash form
+ */
+function maritpal_account_balance_deposit_cash($form, &$form_state, $account) {
+	$line_item = commerce_line_item_new('deposit');
+  $form_state['line_item'] = $line_item;
+  $form_state['order'] = commerce_order_new();
+  $form_state['account'] = $account;
+
+  field_attach_form('commerce_line_item', $line_item, $form, $form_state);
+
+	$form['balance_amount'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Balance'),
+		'#requred' => TRUE,
+		'#weight' => -50
+	);
+	
+	$form['balance_currency'] = array(
+		'#type' => 'select',
+		'#description' => t('Please select currency of Your location'),
+		'#options' => _get_enabled_currencies_options(),
+		'#requred' => TRUE,
+		'#weight' => -49
+	);
+
+  // // The standard commerce unit price widget will have to be hidden.
+  // $form['commerce_unit_price'][LANGUAGE_NONE][0]['amount']['#type'] = 'hidden';
+  // $form['commerce_unit_price'][LANGUAGE_NONE][0]['amount']['#value'] = 0;
+
+	$form['actions'] = array(
+		'#type' => 'container',
+	);
+	$form['actions']['submit'] = array(
+		'#type' => 'submit',
+		'#value' => t('Deposit cash')
+	);
+
+	return $form;
+}
+
+function maritpal_account_balance_deposit_cash_submit($form, &$form_state) {
+	dpm($form_state);
+}

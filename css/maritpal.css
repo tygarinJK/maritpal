@@ -21,20 +21,38 @@
 	margin-left: 10px;
 }
 
-/* Reports | MDC Providers and requests Form / MDC figures by orders form */
+/* Reports | MDC Providers and requests Form / MDC figures by orders form / MDC figures by marketers form */
 #maritpal-reports-mdc-figures-by-providers-and-region-form #edit-period .container-inline-date,
-#maritpal-reports-mdc-figures-by-orders-form #edit-period .container-inline-date {
+#maritpal-reports-mdc-figures-by-orders-form #edit-period .container-inline-date,
+#maritpal-reports-mdc-figures-by-marketers-form #edit-period .container-inline-date {
 	display: inline-block;
 	margin: 0 10px 10px;
 }
 #maritpal-reports-mdc-figures-by-providers-and-region-form #edit-period .container-inline-date label[for*="edit-period-from-datepicker-popup"],
 #maritpal-reports-mdc-figures-by-providers-and-region-form #edit-period .container-inline-date label[for*="edit-period-to-datepicker-popup"],
 #maritpal-reports-mdc-figures-by-orders-form .container-inline-date label[for*="edit-period-from-datepicker-popup"],
-#maritpal-reports-mdc-figures-by-orders-form .container-inline-date label[for*="edit-period-to-datepicker-popup"] {
+#maritpal-reports-mdc-figures-by-orders-form .container-inline-date label[for*="edit-period-to-datepicker-popup"],
+#maritpal-reports-mdc-figures-by-marketers-form .container-inline-date label[for*="edit-period-from-datepicker-popup"],
+#maritpal-reports-mdc-figures-by-marketers-form .container-inline-date label[for*="edit-period-to-datepicker-popup"] {
 	display: none;
 }
 #maritpal-reports-mdc-figures-by-providers-and-region-form #edit-actions > *,
-#maritpal-reports-mdc-figures-by-orders-form #edit-actions > * {
+#maritpal-reports-mdc-figures-by-orders-form #edit-actions > *,
+#maritpal-reports-mdc-figures-by-marketers-form #edit-actions > * {
 	display: inline-block;
 	margin: 0 10px 10px;
+}
+
+/* Reports | Customers filter form */
+#views-exposed-form-admin-user-perfomance-provider-reports-customers-page #edit-location-wrapper label,
+#views-exposed-form-admin-user-perfomance-provider-reports-customers-page #edit-contact-e-mail-wrapper label {
+	margin-bottom: 10px;
+}
+#views-exposed-form-admin-user-perfomance-provider-reports-customers-page #edit-date-created-wrapper .views-widget > div {
+	display: inline-block;
+	vertical-align: middle;
+}
+#views-exposed-form-admin-user-perfomance-provider-reports-customers-page #edit-date-created-wrapper .views-widget label {
+	display: inline-block;
+	float: left;
 }

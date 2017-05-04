@@ -277,12 +277,12 @@ function maritpal_order_request_service_order_form($form, &$form_state, $type, $
     //   'separator' => '|',
     // );
 
-    // $form['request_serv_cat_hs']['#config']['module'] = 'hs_smallhierarchy';
-    // $form['request_serv_cat_hs']['#config']['params'] = array(
-    //   'hierarchy' => _maritpal_order_build_sp_categories($user_ref),
-    //   'id' => 'service-category-hs',
-    //   'separator' => '|',
-    // );
+    $form['request_serv_cat_hs']['#config']['module'] = 'hs_smallhierarchy';
+    $form['request_serv_cat_hs']['#config']['params'] = array(
+      'hierarchy' => _maritpal_order_build_sp_categories($user_ref),
+      'id' => 'service-category-hs',
+      'separator' => '|',
+    );
   }
   else {
     drupal_set_title(t('Request Bid Service Order'));
