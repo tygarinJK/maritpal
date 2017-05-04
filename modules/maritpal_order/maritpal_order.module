@@ -75,7 +75,7 @@ function maritpal_order_request_service_order_form($form, &$form_state, $type, $
   global $user;
 
   $provider = user_load($uid);
-  $user_fullname = $provider->field_prof_username['und'][0]['value'];
+  $user_fullname = isset($provider->field_prof_username['und']) ? $provider->field_prof_username['und'][0]['value'] : '';
 
   // -- Build Breadcrumbs
   $breadcrumb = array();
@@ -419,6 +419,51 @@ function maritpal_order_request_service_order_ajax_add_date($form, $form_state) 
 }
 
 /**
+ * Form validate
+ *
+ * @see maritpal_order_request_service_order_form
+ */
+function maritpal_order_request_service_order_form_validate($form, &$form_state) {
+  global $user;
+
+  if ( isset($form_state['values']['resource_ref']) && !empty($form_state['values']['resource_ref']) ) {
+
+    // -- Date Array to compare
+    $date = array(
+      'value' => $form_state['values']['request_datetime'],
+      'value2' => $form_state['values']['request_datetime2'],
+    );
+
+    $d1 = $date['value'];
+    $d2 = $date['value2'];
+
+    $start = strtotime($d1);
+    $end = strtotime($d2);
+
+    if ($start > $end) {
+      form_set_error('request_datetime', t('End date can not be less than the initial'));
+      form_set_error('request_datetime2');
+
+      return;
+    }
+
+    $time_free = _maritpal_order_validate_service_provider_time($form_state['values']['resource_ref'], $date);
+    
+    if (!$time_free) {
+      form_set_error('request_datetime', t('Time You want to request is not accessible.'));
+      form_set_error('request_datetime2');
+
+      return;
+    }
+  }
+
+  if (!empty($form_state['values']['deadline_datetime'])) {
+    if ((strtotime($form_state['values']['deadline_datetime']) + 7200) > strtotime($form_state['values']['request_datetime']))
+      return form_set_error('deadline_datetime', t('Deadline time must be at least 2 hours learlier the begining of request.'));
+  }
+}
+
+/**
  * Form submit
  *
  * @see maritpal_order_request_service_order_form
@@ -461,27 +506,16 @@ function maritpal_order_request_service_order_form_submit($form, &$form_state) {
    'timezone_db' => 'UTC',
   );
 
-  $node->field_reques_tserv_descr[LANGUAGE_NONE][0]['value'] = $form['request_service_descr']['#value'];
-
-  // dpm($form_state);
+  $node->field_reques_tserv_descr[LANGUAGE_NONE][0]['value'] = 
+    !empty($form_state['values']['request_service_descr']) 
+    ? $form_state['values']['request_service_descr']
+    : '';
 
   // -- Regular requests Service Provider User referense
-  if ($otype === 1) { 
-    // -- MDC
-    $locs = array_map( 'trim', explode('|', $form['request_serv_loc_hs']['hierarchical_select']['selects'][1]['#value']) );
-    $cats = array_map( 'trim', explode('|', $form['request_serv_cat_hs']['hierarchical_select']['selects'][2]['#value']) );
-    
-    $node->field_resource_ref[LANGUAGE_NONE][0]['uid'] = $form['resource_ref']['#value'];
-  }
+  if ($otype === 1) $node->field_resource_ref[LANGUAGE_NONE][0]['uid'] = $form['resource_ref']['#value'];
   
   // -- Bid requests fields
   if ($otype === 2) {
-    for ($i = 0; $i < 3; $i ++) {
-      if ($i < 2) {
-        $locs[$i] = $form['request_serv_loc_hs']['hierarchical_select']['selects'][$i]['#value'];}
-      $cats[$i] = $form['request_serv_cat_hs']['hierarchical_select']['selects'][$i]['#value'];  
-    }
-
     $dead_date = new DateTime($form_state['values']['deadline_datetime']);
     $dead_date ->setTimezone($utc);
 
@@ -502,58 +536,16 @@ function maritpal_order_request_service_order_form_submit($form, &$form_state) {
   }
 
   // -- Service MDC 
-  foreach ($locs as $k => $v) {
-    $node->field_serv_loc_city[LANGUAGE_NONE][]['tid'] = intval($v);
+  foreach ($form_state['values']['request_serv_loc_hs'] as $i => $tid) {
+    $node->field_serv_loc_city[LANGUAGE_NONE][]['tid'] = $tid;
   }
+  $node->field_request_serv_cat[LANGUAGE_NONE][0]['tid'] = end($form_state['values']['request_serv_cat_hs']);
 
-  
-  $node->field_request_serv_cat[LANGUAGE_NONE][0]['tid'] = intval(end($cats));
   dpm($form_state);
-  // node_save($node);
+  node_save($node);
 
-  // $form_state['redirect'] = 'user/'. $user->uid .'/browse-orders/draft';
-
-  // drupal_set_message(t('Request <strong>@name:</strong> was succesfully created', array('@name:' => $node->title)), 'status', FALSE);
-}
-
-/**
- * Form validate
- *
- * @see maritpal_order_request_service_order_form
- */
-function maritpal_order_request_service_order_form_validate($form, &$form_state) {
-  global $user;
-
-  if ( isset($form_state['values']['resource_ref']) && !empty($form_state['values']['resource_ref']) ) {
-
-    // -- Date Array to compare
-    $date = array(
-      'value' => $form_state['values']['request_datetime'],
-      'value2' => $form_state['values']['request_datetime2'],
-    );
-
-    $d1 = $date['value'];
-    $d2 = $date['value2'];
-
-    $start = strtotime($d1);
-    $end = strtotime($d2);
-
-    if ($start > $end) {
-      form_set_error('request_datetime', t('End date can not be less than the initial'));
-      form_set_error('request_datetime2');
-
-      return;
-    }
-
-    $time_free = _maritpal_order_validate_service_provider_time($form_state['values']['resource_ref'], $date);
-    
-    if (!$time_free) {
-      form_set_error('request_datetime', t('Time You want to request is not accessible.'));
-      form_set_error('request_datetime2');
-
-      return;
-    }
-  }
+  $form_state['redirect'] = 'user/'. $user->uid .'/browse-orders/draft';
+  drupal_set_message(t('Request <strong>@name:</strong> was succesfully created', array('@name:' => $node->title)), 'status', FALSE);
 }
 
 /**

@@ -309,6 +309,8 @@ function maritpal_form_privatemsg_list_alter(&$form, &$form_state) {
  *  MDC Category
  * @param arr $date
  *  Date array
+ *    - value
+ *    - value2
  * @param str $mail
  *  (optional) User mail
  *
