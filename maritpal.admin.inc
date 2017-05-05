@@ -205,7 +205,7 @@ function maritpal_ajax_add_tax_callback($form, $form_state) {
  */
 function maritpal_admin_pricing_rules_form($form, &$form_state, $term = NULL) {
 	if (!is_null($term)) {
-		// dpm($term);
+		dpm($term);
 		$form_state['term'] = $term;
 	}
 
@@ -271,7 +271,7 @@ function maritpal_admin_pricing_rules_form($form, &$form_state, $term = NULL) {
       'render_flat_select' => 0,
     ),
     '#description' => t(''),
-    '#default_value' => _service_category_default_value($term->field_serv_loaction['und'][0]['tid']),
+    '#default_value' => isset($term->field_serv_loaction['und']) ? _service_category_default_value($term->field_serv_loaction['und'][0]['tid']) : '',
     '#required' => TRUE,
     '#weight' => -49,
   );

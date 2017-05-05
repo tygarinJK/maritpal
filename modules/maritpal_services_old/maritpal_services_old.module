@@ -671,14 +671,14 @@ function maritpal_services_old_privatemsg_image_attach($mid, $fid, $width, $heig
     'field_image_width' => $width,
     'field_image_height' => $height,
   );
-
+  
   $result = db_select('field_data_field_image', 'img')
     ->fields('img', array('entity_id'))
     ->condition('entity_id', $mid, '=')
     ->execute()
     ->fetchCol();
     
-  // dpm($result);
+  // return $result;
 
   if (count($result) == 0) {
     $result['insert'][] = db_insert('field_data_field_image')
@@ -688,8 +688,8 @@ function maritpal_services_old_privatemsg_image_attach($mid, $fid, $width, $heig
     $result['insert'][] = db_insert('field_revision_field_image')
       ->fields($options)
       ->execute();
-
-    cache_clear_all('*', 'cache_page', TRUE);
+      
+    drupal_flush_all_caches();
   }
 
   return $result['insert'][0] >= 0 && $result['insert'][1] >= 0 ? TRUE : FALSE;

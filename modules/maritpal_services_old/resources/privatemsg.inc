@@ -56,7 +56,7 @@ function _privatemsg_ticket($data) {
  *   Return TRUE if sending the message was successful.
  */
 function __privatemsg_services_send(array $message) {
-  $subject    = $message['subject'];
+  $subject    = isset($message['subject']) ? $message['subject'] : '';
   $body       = $message['body'];
   $recipients = $message['recipients'];
   $thread_id  = $message['thread_id'];

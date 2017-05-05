@@ -305,7 +305,7 @@ function maritpal_form_privatemsg_new_alter(&$form, &$form_state) {
       $form['#access'] = FALSE;
     }
   }
-
+  // dpm($form);
   return $form;
 }
 
@@ -447,12 +447,15 @@ function maritpal_privatemsg_thread_is_new($privatemsg_message, $account) {
  * @param number $tread_id
  *  ID of a thrad to search
  * @param number $tag_id
- *  ID aof a tag to search
+ *  ID of a tag to search
  *
  * @return boolean
  */
 function maritpal_privatemsg_thread_has_tag($tread_id, $tag_id) {
+
   $tag = maritpal_privatemsg_load_tag($tag_id);
+  
+  if (!$tag) return FALSE;
 
   $query = db_query(
       'SELECT * FROM {pm_tags_index} WHERE tag_id = (:tag_id) AND thread_id = (:thread_id)', 
@@ -522,15 +525,9 @@ function maritpal_privatemsg_load_tag($tag_id) {
   $query = db_query('SELECT * FROM {pm_tags} WHERE tag_id = (:tag_id)', array(':tag_id' => $tag_id));
   $result = $query->fetchAll();
 
-  $tag = new stdClass;
-
   if (count($result) > 0) {
-    foreach ($result as $k => $t) {
-      $tag = $t;
-    }
-  }
-
-  return $tag;
+    return current($result);
+  } else return FALSE;
 }
 
 /**
