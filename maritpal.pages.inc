@@ -594,8 +594,6 @@ function maritpal_reports_mdc_figures_by_providers_and_region_form_submit(&$form
 
 	if(count($q_params) > 0)
 		$form_state['redirect'] = array(current_path(), array('query' => $q_params));
-
-	// dpm($form_state);
 }
 
 /**
@@ -606,124 +604,128 @@ function maritpal_reports_mdc_figures_by_marketers_form($form, $form_state) {
 	$q_params = drupal_get_query_parameters();
 	// dpm($q_params);
 
-	$form = maritpal_reports_filters_form();
+	$form = maritpal_reports_filters_form($form, $form_state);
 
 	unset(
 		$form['filters']['mdc']['service_category']
 	);
 
+	$form['filters']['period']['#title'] = t('Provider created period');
+
 	$form['filters']['marketing_code'] = array(
 		'#type' => 'textfield',
 		'#title' => t('Marketing code'),
+		'#description' => t('Contains value to compare'),
 		'#default_value' => isset($q_params['marketing_code']) ? $q_params['marketing_code'] : '',
 		'#weight' => 49,
 	);
 
-	// $query = new EntityFieldQuery();
-	// $orders = $query->entityCondition('entity_type', 'node')
-	// 	->entityCondition('bundle', 'request')
-	// 	->addMetaData('account', user_load(4));
+	// select providers role
+	$result = db_select('users_roles', 'ur')
+		->fields('ur', array('uid'))
+		->condition('rid', 4, '=')
+		->execute()
+		->fetchAll();
+	
+	$uids = array();
+	foreach ($result as $value) {
+		$uids[] = $value->uid;
+	}
 
-	// if (!empty($q_params['service_location']))
-	// 	$query->fieldCondition('field_serv_loc_city', 'tid', $q_params['service_location'], 'CONTAINS');
-	// if (!empty($q_params['service_category'])) {
-	// 	$chids = array($q_params['service_category']);
+	$query = new EntityFieldQuery();
+	$query->entityCondition('entity_type', 'user')
+		->propertyCondition('uid', $uids, 'IN')
+		->addMetaData('account', user_load(4));
 
-	// 	$tree = taxonomy_get_tree(13, $q_params['service_category']);
-	// 	foreach ($tree as $i => $term) {
-	// 		$chids[] = $term->tid;
-	// 	}
-	// 	$query->fieldCondition('field_request_serv_cat', 'tid', $chids, 'IN');
-	// }
+	// Provider location filter
+	if (!empty($q_params['service_location']))
+		$query->fieldCondition('field_serv_loc_city', 'tid', $q_params['service_location'], 'CONTAINS');
 
-	// if (!empty($q_params['period_from']))
-	// 	$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
-	// if (!empty($q_params['period_to']))
-	// 	$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
+	// Marketing code filter
+	if (!empty($q_params['marketing_code']))
+		$query->fieldCondition('field_user_marketing_code', 'value', $q_params['marketing_code'], 'CONTAINS');
 
-	// $orders = $query->execute();
+	// Provider created filter
+	if (!empty($q_params['period_from']))
+		$query->propertyCondition('created', strtotime($q_params['period_from']), '>');
+	if (!empty($q_params['period_to']))
+		$query->propertyCondition('created', strtotime($q_params['period_to']), '<');
 
-	// // fill table rows
-	// $rows = array();
-	// if (isset($orders['node'])) {
-	// 	$nids = array_keys($orders['node']);
-	// 	$nodes = node_load_multiple($nids);
-
-	// 	// dpm($nodes);
-
-	// 	$statistics = array();
-	// 	foreach ($nodes as $node) {
-	// 		// sort by mdc
-	// 		$mdc_key = end($node->field_request_serv_cat['und'])['tid'] .'_'. end($node->field_serv_loc_city['und'])['tid'];
-
-	// 		// sort orders by status
-	// 		if (isset($node->field_request_status['und'])) {
-	// 			switch ($node->field_request_status['und'][0]['tid']) {
-	// 				case '10':
-	// 				case '11':
-	// 					$statistics[$mdc_key]['opened'][] = $node->nid;
-	// 					break;
-	// 				case '14':
-	// 					$statistics[$mdc_key]['confirmed'][] = $node->nid;
-	// 					break;
-	// 				case '13':
-	// 				case '15':
-	// 					$statistics[$mdc_key]['canceled'][] = $node->nid;
-	// 					break;
-	// 				case '16':
-	// 					$statistics[$mdc_key]['closed'][] = $node->nid;
-	// 					break;
-	// 			}
-	// 		}
-
-	// 		// direct orders
-	// 		if (isset($node->field_order_type['und']) && $node->field_order_type['und'][0]['value'] == 1) {
-	// 			$statistics[$mdc_key]['direct_orders']['orders'][] = $node->nid;
-
-	// 		}
-	// 		// bid orders
-	// 		elseif (isset($node->field_order_type['und']) && $node->field_order_type['und'][0]['value'] == 2) {
-	// 			$statistics[$mdc_key]['bid_orders']['orders'][] = $node->nid;
-
-	// 			// bid order with no proposal
-	// 			if ($node->comment_count == 0) $statistics[$mdc_key]['bid_orders']['no_proposal'][] = $node->nid;
-
-	// 			if (isset($node->field_request_status['und']) && $node->field_request_status['und'][0]['tid'] == 12) {
-	// 				// bid order which not confirmed
-	// 				$statistics[$mdc_key]['bid_orders']['approved'][] = $node->nid;
-	// 			}
-	// 		}
-	// 	}
-	// }
-
-	// // dpm($statistics);
-
-	// foreach ($statistics as $key => $value) {
-	// 	$mdc = explode('_', $key);
-	// 	if (empty($mdc[0]) || empty($mdc[1])) continue;
-
-	// 	$categories = maritpal_get_mdc_category_tree($mdc[0]);
-	// 	$location = maritpal_get_mdc_location_tree($mdc[1]);
-
-	// 	$rows[] = array(
-	// 		'mdc_0' => $categories['mdc_0'], 
-	// 		'mdc_1' => $categories['mdc_1'], 
-	// 		'mdc_2' => $categories['mdc_2'],
-	// 		'mdc_3' => $categories['mdc_3'],
-	// 		'country' => $location['country'],
-	// 		'city' => $location['city'],
-	// 		'direct_created' => isset($value['direct_orders']['orders']) ? count($value['direct_orders']['orders']) : 0,
-	// 		'confirmed' => isset($value['confirmed']) ? count($value['confirmed']) : 0,
-	// 		'opened' => isset($value['opened']) ? count($value['opened']) : 0,
-	// 		'canceled' => isset($value['canceled']) ? count($value['canceled']) : 0,
-	// 		'closed' => isset($value['closed']) ? count($value['closed']) : 0,
-	// 		'bid_created' => isset($value['bid_orders']['orders']) ? count($value['bid_orders']['orders']) : 0,
-	// 		'bid_no_pro' => isset($value['bid_orders']['no_proposal']) ? count($value['bid_orders']['no_proposal']) : 0,
-	// 		'bid_not_confirmed' => isset($value['bid_orders']['approved']) ? count($value['bid_orders']['approved']) : 0,
-	// 	);
-	// }
+	$eq_users = $query->execute();
 
 	$rows = array();
+	if (isset($eq_users['user'])) {
+		$uids = array_keys($eq_users['user']);
+		$users = user_load_multiple($uids);
+		$uids = array_combine($uids, $uids);
+
+		foreach ($users as $uid => $user) {
+			if (!isset($user->field_user_marketing_code['und']) || empty($user->field_user_marketing_code['und'][0]['value'])) {
+				unset(
+					$users[$uid],
+					$uids[$uid]
+				);
+			}
+		}
+
+		// dpm($users);
+		// dpm($uids);
+
+		$query = new EntityFieldQuery();
+		$nodes = $query->entityCondition('entity_type', 'node')
+			->entityCondition('bundle', 'request')
+			->fieldCondition('field_resource_ref', 'uid', $uids, 'IN')
+			->fieldCondition('field_request_status', 'tid', array(11, 12, 13, 14, 15, 16, 17), 'IN')
+			->addMetaData('account', user_load(4))
+			->execute();
+		
+		if (isset($nodes['node'])) {
+			$nids = array_keys($nodes['node']);
+			$nodes = entity_load('node', $nids);
+		} else $nodes = array();
+
+		// dpm($nodes);
+
+		$stat = array();
+		foreach ($users as $uid => $user) {
+			$mcode = preg_replace('/ /', '_', $user->field_user_marketing_code['und'][0]['value']);
+
+			if (!isset($user->field_serv_loc_city['und'])) continue;
+			else {
+				$location = isset($user->field_serv_loc_city['und']) ? end($user->field_serv_loc_city['und'])['tid'] : 0;
+				$stat[$location][$mcode]['users'][] = $uid;
+
+				foreach ($nodes as $nid => $node) {
+					if (!isset($node->field_order_type['und']) || !isset($node->field_resource_ref['und']) || !isset($node->field_request_status['und'])) continue;
+
+					if ($node->field_resource_ref['und'][0]['uid'] == $uid) {
+						$stat[$location][$mcode]['orders']['total'][] = $node->nid;
+
+						if ($node->field_order_type['und'][0]['value'] == 1) $stat[$location][$mcode]['orders']['direct'][] = $node->nid;
+						elseif ($node->field_order_type['und'][0]['value'] == 2) $stat[$location][$mcode]['orders']['bid'][] = $node->nid;
+					}
+				}
+			}
+		}
+
+		dpm($stat);
+
+		foreach ($stat as $tid => $locset) {
+			$location = maritpal_get_mdc_location_tree($tid);
+
+			foreach ($locset as $mcode => $value) {
+				$rows[] = array(
+					'country' => $location['country'],
+					'city' => $location['city'],
+					'mark_code' => $mcode,
+					'prov_num' => count($value['users']),
+					'direct_confirmed' => count($value['orders']['direct']),
+					'bid_confirmed' => count($value['orders']['bid']),
+					'total' => count($value['orders']['total']),
+				);
+			}
+		}
+	}
 
 	$per_page = 20;
 	// Initialize the pager
