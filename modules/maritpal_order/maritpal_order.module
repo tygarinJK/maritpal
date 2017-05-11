@@ -539,7 +539,8 @@ function maritpal_order_request_service_order_form_submit($form, &$form_state) {
   foreach ($form_state['values']['request_serv_loc_hs'] as $i => $tid) {
     $node->field_serv_loc_city[LANGUAGE_NONE][]['tid'] = $tid;
   }
-  $node->field_request_serv_cat[LANGUAGE_NONE][0]['tid'] = end($form_state['values']['request_serv_cat_hs']);
+  $categories = explode('|', end($form_state['values']['request_serv_cat_hs']));
+  $node->field_request_serv_cat[LANGUAGE_NONE][0]['tid'] = end($categories);
 
   dpm($form_state);
   node_save($node);
@@ -665,9 +666,7 @@ function _maritpal_order_validate_service_provider_time($uid, $date) {
   if (isset($result['node'])) {
     date_default_timezone_set($curent_user->timezone);
 
-    $datetime2 = new DateTime($form_state['values']['request_datetime2']);
-
-
+    $datetime2 = new DateTime($date['value2']);
 
     // -- Compare Dates
     $d1 = new DateTime($date['value']);

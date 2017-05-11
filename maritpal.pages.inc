@@ -8,15 +8,50 @@
 /**
  * Render display Price Rules table
  */
-function maritpal_pricing_rules_review() {
+function maritpal_pricing_rules_review($form, &$form_state) {
+	// Path query
+	$q_params = drupal_get_query_parameters();
+	dpm($q_params);
+
+	$form = maritpal_reports_filters_form($form, $form_state);
+	$form['filters']['service_location'] = $form['filters']['mdc']['service_location'];
+	$form['filters']['service_category'] = $form['filters']['mdc']['service_category'];
+
+	unset(
+		$form['filters']['period'],
+		$form['filters']['mdc'],
+		$form['filters']['mdc']['service_location'],
+		$form['filters']['mdc']['service_category']
+	);
+
 	$query = new EntityFieldQuery();
-  $result = $query->entityCondition('entity_type', 'taxonomy_term')
+  $query->entityCondition('entity_type', 'taxonomy_term')
   ->propertyCondition('vid', 23, '=')
-	->propertyOrderBy('name', $direction = 'ASC')
-  ->execute();
+	->propertyOrderBy('name', $direction = 'ASC');
+
+	if (!empty($q_params['service_location'])) {
+		$chids = array($q_params['service_location']);
+
+		$tree = taxonomy_get_tree(14, $q_params['service_location']);
+		foreach ($tree as $i => $term) {
+			$chids[] = $term->tid;
+		}
+		$query->fieldCondition('field_serv_loaction', 'tid', $chids);
+	}
+	if (!empty($q_params['service_category'])) {
+		$chids = array($q_params['service_category']);
+
+		$tree = taxonomy_get_tree(13, $q_params['service_category']);
+		foreach ($tree as $i => $term) {
+			$chids[] = $term->tid;
+		}
+		$query->fieldCondition('field_serv_cat', 'tid', $chids);
+	}
+
+	$result = $query->execute();
   
 	$rows = array();
-  if (count($result['taxonomy_term']) > 0) {
+  if (isset($result['taxonomy_term'])) {
   	$terms = entity_load('taxonomy_term', array_keys($result['taxonomy_term']));
 
   	foreach ($terms as $term) {
@@ -44,6 +79,12 @@ function maritpal_pricing_rules_review() {
   	}
   }
 
+	$per_page = 20;
+	// Initialize the pager
+	$current_page = pager_default_initialize(count($rows), $per_page);
+	// Split list into page sized chunks
+	$chunks = array_chunk($rows, $per_page, TRUE);
+
 	$output = theme_table(array(
 		'header' => array(
 			'tid' => '#',
@@ -55,7 +96,7 @@ function maritpal_pricing_rules_review() {
 			'serv_duration' => t('Service Duration (per)'),
 			'operations' => t('Operations'),
 		),
-		'rows' => $rows,
+		'rows' => $chunks[$current_page],
 		'attributes' => array(),
 		'caption' => t(''),
 		'colgroups' => array(),
@@ -63,8 +104,35 @@ function maritpal_pricing_rules_review() {
 		'empty' => t('No items found')
 	));
 
-	return $output;
+	// Show the pager
+	$output .= theme('pager', array('quantity',count($rows)));
+
+	$form['result_table'] = array(
+		'#markup' => $output,
+	);
+
+	$form['#attached']['css'][] = drupal_get_path('module', 'maritpal') .'/css/maritpal.css';
+  $form['#validate'][] = 'maritpal_pricing_rules_review_validate';
+  $form['#submit'][] = 'maritpal_pricing_rules_review_submit';
+
+	return $form;
 }
+
+function maritpal_pricing_rules_review_validate(&$form, &$form_state) {
+}
+
+function maritpal_pricing_rules_review_submit(&$form, &$form_state) {
+	$q_params = array();
+	if (!empty($form_state['values']['service_location'][0])) $q_params['service_location'] = $form_state['values']['service_location'][0];
+	if (!empty($form_state['values']['service_category'][0])) $q_params['service_category'] = $form_state['values']['service_category'][0];
+
+	if(count($q_params) > 0)
+		$form_state['redirect'] = array(current_path(), array('query' => $q_params));
+}
+
+/**
+ * Reports info Page
+ */
 function maritpal_reports_intro_page() {
 	// $menu = maritpal_submenu_tree_all_data($title, '');
 	return 'TODO: Intro page';

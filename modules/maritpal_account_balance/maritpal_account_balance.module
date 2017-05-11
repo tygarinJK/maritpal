@@ -22,7 +22,7 @@ function maritpal_account_balance_permission() {
 function maritpal_account_balance_menu() {
   $items = array();
 
-  $items['admin/maritpal/settings/balance/add'] = array(
+  $items['admin/maritpal/settings/balance/transactions/add'] = array(
     'title' => t('Add transaction'),
     'description' => t(''),
     'page callback' => 'drupal_get_form',

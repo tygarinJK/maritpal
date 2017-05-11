@@ -404,6 +404,25 @@ function maritpal_admin_pricing_rules_form($form, &$form_state, $term = NULL) {
 }
 
 function maritpal_admin_pricing_rules_form_validate($form, &$form_state) {
+	// Check if rule exist
+	$query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'taxonomy_term')
+  ->propertyCondition('vid', 23, '=')
+	->fieldCondition('field_serv_loaction', 'tid', $form_state['values']['request_serv_loc_hs'])
+	->fieldCondition('field_serv_cat', 'tid', $form_state['values']['request_serv_cat_hs']);
+
+	if (isset($form_state['values']['provider_mail']))
+		$query->fieldCondition('field_serv_sp_mail', 'email', $form_state['values']['provider_mail']);
+
+	$result = $query->execute();
+  if (isset($result['taxonomy_term'])) {
+		form_set_error('request_serv_loc_hs', t('Such rule is already exist.'));
+		form_set_error('request_serv_cat_hs');
+		if (isset($form_state['values']['provider_mail']))
+			form_set_error('provider_mail');
+	}
+
+	// Validate eamil address
 	if (!empty($form_state['values']['provider_mail']) && !valid_email_address($form_state['values']['provider_mail'])) {
 		form_set_error('provider_mail', t('The email address appears to be invalid.'));
 	}
@@ -468,7 +487,7 @@ function maritpal_admin_pricing_rules_delete_confirm_form($form, &$form_state, $
 	return confirm_form(
 		$form,
 		t('Are you sure you want to delete this item?'),
-		'admin/maritpal/pricing-rules',
+		'admin/maritpal/settings/pricing-rules',
 		t('This action cannot be undone.'),
 		t('Delete'),
 		t('Cancel')
@@ -478,6 +497,6 @@ function maritpal_admin_pricing_rules_delete_confirm_form($form, &$form_state, $
 function maritpal_admin_pricing_rules_delete_confirm_form_submit($form, &$form_state) {
 	if (!isset($form_state['term']->tid)) return FALSE;
 
-	$form_state['redirect'] = 'admin/maritpal/pricing-rules';
+	$form_state['redirect'] = 'admin/maritpal/settings/pricing-rules';
 	return taxonomy_term_delete($form_state['term']->tid);
 }

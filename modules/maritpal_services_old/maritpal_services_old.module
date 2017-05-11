@@ -71,6 +71,9 @@ function maritpal_services_old_menu() {
 function maritpal_services_old_services_resources_alter(&$resources, &$endpoint) {
   $resources['user']['actions']['login']['file'] = array('type' => 'inc', 'module' => 'maritpal_services_old', 'name' => 'resources/user_resource');
   $resources['user']['actions']['login']['callback'] = '__user_resource_login';
+  
+  $resources['system']['actions']['connect']['file'] = array('type' => 'inc', 'module' => 'maritpal_services_old', 'name' => 'resources/system_resource');
+  $resources['system']['actions']['connect']['callback'] = '__system_resource_connect';
 
   $resources['privatemsg']['actions']['ticket'] = array(
     'file' => array(
@@ -992,6 +995,76 @@ function maritpal_services_old_privatemsg_mark_as_read($thread_id, $uid) {
     ->execute();
     
   return is_numeric($result) ? TRUE : FALSE;
+}
+
+/**
+ * Return User MDC tree
+ *
+ * @param obj $user
+ *  User account to construct mdc
+ */
+function maritpal_services_old_get_mdc_tree($user) {
+  // -- Categories
+  if (isset($user->field_user_serv_categories['und'])) {
+    foreach ($user->field_user_serv_categories['und'] as $key => $value) {
+      $tid = $value['tid'];
+      $parent = taxonomy_get_parents($tid);
+
+      $mdc_tree['field_user_serv_categories'][$key] = (object)array(
+        'tid' => $tid
+      );
+
+      if ( is_array($parent) && key($parent) != null )
+        $mdc_tree['field_user_serv_categories'][$key]->parent = key($parent); 
+    }
+  }
+
+  // -- Subject
+  if (isset($user->field_user_serv_subj['und'])) {
+    foreach ($user->field_user_serv_subj['und'] as $key => $value) {
+      $tid = $value['tid'];
+      $parent = taxonomy_get_parents($tid);
+
+      $mdc_tree['field_user_serv_subj'][$key] = (object)array(
+        'tid' => $tid
+      );
+
+      if ( is_array($parent) && key($parent) != null )
+        $mdc_tree['field_user_serv_subj'][$key]->parent = key($parent); 
+    }
+  }
+
+  // -- Object
+  if ( isset($user->field_user_serv_obj['und']) ) {
+    foreach ($user->field_user_serv_obj['und'] as $key => $value) {
+      $tid = $value['tid'];
+      $parent = taxonomy_get_parents($tid);
+
+      $mdc_tree['field_user_serv_obj'][$key] = (object)array(
+        'tid' => $tid
+      );
+
+      if ( is_array($parent) && key($parent) != null )
+        $mdc_tree['field_user_serv_obj'][$key]->parent = key($parent); 
+    }
+  }
+
+  // -- Location
+  if ( isset($user->field_serv_loc_city['und']) ) {
+    foreach ($user->field_serv_loc_city['und'] as $key => $value) {
+      $tid = $value['tid'];
+      $parent = taxonomy_get_parents($tid);
+
+      $mdc_tree['field_serv_loc_city'][$key] = (object)array(
+        'tid' => $tid
+      );
+
+      if ( is_array($parent) && key($parent) != null )
+        $mdc_tree['field_serv_loc_city'][$key]->parent = key($parent); 
+    }
+  }
+
+  return $mdc_tree;
 }
 
 /**

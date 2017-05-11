@@ -118,7 +118,9 @@ function maritpal_menu() {
   $items['admin/maritpal/settings/pricing-rules'] = array(
     'title' => t('Pricing Rules'),
     'description' => t(''),
-    'page callback' => 'maritpal_pricing_rules_review',
+    // 'page callback' => 'maritpal_pricing_rules_review',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('maritpal_pricing_rules_review'),
     'access arguments' => array('maritpal settings'),
     'file' => 'maritpal.pages.inc',
     'type' => MENU_LOCAL_TASK,

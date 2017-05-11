@@ -7,7 +7,7 @@ function maritpal_order_rules_action_info() {
   return array(
     'maritpal_order_service_request_pricing_calculation' => array(
       'label' => t('CUSTOM PRICING RULE | Service request pricing calculation'),
-      'group' => t('Custom'),
+      'group' => t('Maritpal Pricing'),
       'parameter' => array(
         'node' => array(
           'type' => 'node',
@@ -20,9 +20,29 @@ function maritpal_order_rules_action_info() {
       ),
       'provides' => array(),
     ),
+		'maritpal_order_service_request_pricing_rate_calculation' => array(
+      'label' => t('Calculate service request price rate depend on pricing rule'),
+      'group' => t('Maritpal Pricing'),
+      'parameter' => array(
+        'node' => array(
+          'type' => 'node',
+          'label' => t('node'),
+        ),
+      ),
+      'provides' => array(
+				'price_amount' => array(
+					'type' => 'decimal',
+					'label' => t('Price amount')
+				),
+				'price_currency_code' => array(
+					'type' => 'text',
+					'label' => t('Price currency code')
+				),
+			),
+    ),
 		'maritpal_order_account_balance_pricing_calculation' => array(
       'label' => t('Calculating Balance sell Price'),
-      'group' => t('Commerce Account Balance'),
+      'group' => t('Maritpal Account Balance'),
       'parameter' => array(
         'user' => array(
           'type' => 'user',
@@ -210,6 +230,46 @@ function maritpal_order_service_request_pricing_calculation($node, $commerce_lin
 		/** Reset DC line-items cache */
 		entity_get_controller('commerce_line_item')->resetCache(array($commerce_line_item->line_item_id));
 	}
+}
+
+/**
+ * Callback function to maritpal_order_rules_action_info
+ * 
+ * @see maritpal_order_rules_action_info()
+ *
+ * @param object $node
+ * 	Service Request Node
+ */
+function maritpal_order_service_request_pricing_rate_calculation($node) {
+
+	$location = array();
+	if (isset($node->field_serv_loc_city['und'])) {
+		foreach ($node->field_serv_loc_city['und'] as $key => $value) {
+			$location[] = $value['tid'];
+		}
+	}
+	$category = array(isset($node->field_request_serv_cat['und']) ? $node->field_request_serv_cat['und'][0]['tid'] : 0);
+	$date = array(
+		'value' => $node->field_date_and_time['und'][0]['value'],
+		'value2' => $node->field_date_and_time['und'][0]['value2'],
+	);
+
+	if (isset($node->field_resource_ref['und'][0]['uid'])) {
+		$provider = user_load($node->field_resource_ref['und'][0]['uid']);
+		$mail = $provider->mail;
+	} else $mail = NULL;
+
+	$price = maritpal_services_old_calculate_request_service_price_rate($location, $category, $date, $mail);
+	$sum  = $price->data->components->base_price;
+	$sum += $price->data->components->admin_tax;
+	$sum += $price->data->components->transfer_tax; 
+	$sum += $price->data->components->surcharge;
+	$sum += $price->data->components->additional_taxes;
+
+	return array(
+		'price_amount' => $sum,
+		'price_currency_code' => $price->data->currency_code
+	);
 }
 
 /**
